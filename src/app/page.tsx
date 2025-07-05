@@ -21,6 +21,19 @@ import { Logo } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 import { type ThinkingStep } from "@/lib/api-types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+
+function SamplePromptCard({ icon, title, subtitle, onClick }: { icon: string, title: string, subtitle: string, onClick: () => void }) {
+    return (
+        <button onClick={onClick} className="p-4 border rounded-lg text-left hover:bg-muted transition-colors flex items-start gap-4 w-full">
+            <span className="text-2xl pt-1">{icon}</span>
+            <div>
+                <p className="font-semibold">{title}</p>
+                <p className="text-sm text-muted-foreground">{subtitle}</p>
+            </div>
+        </button>
+    );
+}
 
 export default function Home() {
   const { toast } = useToast();
@@ -69,25 +82,35 @@ export default function Home() {
   };
 
   const handleSendMessage = async (content: string) => {
-    if (!activeConversation) return;
+    if (!content.trim()) return;
 
-    const userMessage: Message = { id: uuidv4(), role: 'user', content };
+    const isNewChat = !activeConversationId;
+    const conversationId = activeConversationId || uuidv4();
 
-    let newTitle = activeConversation.title;
-    const isFirstUserMessage = activeConversation.messages.filter(m => m.role === 'user').length === 0;
-    if (isFirstUserMessage && activeConversation.title === "New Conversation") {
-      newTitle = content.substring(0, 30);
+    // If it's a new conversation, create it and add it to state immediately.
+    // This happens before we add any messages.
+    if (isNewChat) {
+      const newConversation: Conversation = {
+        id: conversationId,
+        title: content.substring(0, 30),
+        messages: [],
+        createdAt: Date.now(),
+      };
+      setConversations(prev => [newConversation, ...prev]);
+      setActiveConversationId(conversationId);
     }
     
+    const userMessage: Message = { id: uuidv4(), role: 'user', content };
     const assistantMessage: Message = { id: uuidv4(), role: "assistant", content: "" };
 
-    const updatedConversationWithUserAndAssistantShell = {
-      ...activeConversation,
-      title: newTitle,
-      messages: [...activeConversation.messages, userMessage, assistantMessage],
-    };
+    // Add user message and assistant placeholder using a functional update
+    // This ensures we're updating the correct conversation (new or existing)
+    setConversations(prev => prev.map(c => 
+      c.id === conversationId 
+        ? { ...c, messages: [...c.messages, userMessage, assistantMessage] } 
+        : c
+    ));
 
-    setConversations(prev => prev.map(c => c.id === activeConversationId ? updatedConversationWithUserAndAssistantShell : c));
     setIsGenerating(true);
     setThinkingSteps([]);
 
@@ -137,26 +160,21 @@ export default function Home() {
                       });
                   } else if (data.content) {
                       setConversations(prevConversations => {
-                          const activeConvIndex = prevConversations.findIndex(c => c.id === activeConversationId);
-                          if (activeConvIndex === -1) return prevConversations;
-                          
-                          const newConversations = [...prevConversations];
-                          const activeConversation = { ...newConversations[activeConvIndex] };
-                          const newMessages = [...activeConversation.messages];
-                          const lastMessageIndex = newMessages.length - 1;
-                          const lastMessage = newMessages[lastMessageIndex];
-
-                          if (lastMessage && lastMessage.role === 'assistant') {
-                              newMessages[lastMessageIndex] = {
-                                  ...lastMessage,
-                                  content: lastMessage.content + data.content,
+                        return prevConversations.map(c => {
+                          if (c.id === conversationId) {
+                            const newMessages = [...c.messages];
+                            const lastMessageIndex = newMessages.length - 1;
+                            if (lastMessageIndex >= 0 && newMessages[lastMessageIndex].role === 'assistant') {
+                              const updatedAssistantMessage = {
+                                ...newMessages[lastMessageIndex],
+                                content: newMessages[lastMessageIndex].content + data.content
                               };
+                              newMessages[lastMessageIndex] = updatedAssistantMessage;
+                              return { ...c, messages: newMessages };
+                            }
                           }
-                          
-                          activeConversation.messages = newMessages;
-                          newConversations[activeConvIndex] = activeConversation;
-                          
-                          return newConversations;
+                          return c;
+                        });
                       });
                   }
                 } catch (e) {
@@ -172,7 +190,7 @@ export default function Home() {
         description: "Failed to get a response. Please try again.",
       });
       setConversations(prev => prev.map(c => {
-          if (c.id === activeConversationId) {
+          if (c.id === conversationId) {
               const newMessages = c.messages.filter(m => m.id !== assistantMessage.id);
               return {...c, messages: newMessages};
           }
@@ -183,6 +201,7 @@ export default function Home() {
       setThinkingSteps([]);
     }
   };
+
 
   const handleRateMessage = (messageId: string, rating: 'up' | 'down') => {
     if (!activeConversation) return;
@@ -232,7 +251,6 @@ export default function Home() {
         <header className="p-2 border-b flex items-center justify-between">
             <SidebarTrigger className="md:hidden" />
             <div className="flex-1 flex justify-center">
-              {activeConversation ? (
                 <Select value={selectedModel} onValueChange={setSelectedModel}>
                     <SelectTrigger className="w-auto md:w-[180px] bg-transparent border-none focus:ring-0 shadow-none text-base font-semibold">
                         <SelectValue placeholder="Select a model" />
@@ -243,36 +261,58 @@ export default function Home() {
                         <SelectItem value="Gemini Flash">Gemini Flash</SelectItem>
                     </SelectContent>
                 </Select>
-              ) : (
-                <span className="font-semibold text-lg">
-                  Legal Advisor
-                </span>
-              )}
             </div>
             <ThemeToggle />
         </header>
 
-        {activeConversation ? (
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <ChatMessages messages={activeConversation.messages} onRateMessage={handleRateMessage} isGenerating={isGenerating} thinkingSteps={thinkingSteps} />
-            <ChatInput onSendMessage={handleSendMessage} isGenerating={isGenerating} />
-            <footer className="text-center text-xs text-muted-foreground p-2">
-              ⚠️ Disclaimer: Responses may be inaccurate. Verify with official legal sources.
-            </footer>
-          </div>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center gap-4 p-4 text-center">
-            <Logo className="size-16 text-primary" />
-            <h1 className="text-2xl font-bold">Welcome to Legal Advisor</h1>
-            <p className="max-w-md text-muted-foreground">
-              Start a new conversation to begin chatting. Your conversations will be saved locally in your browser.
-            </p>
-            <button onClick={handleNewConversation} className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
-              Start New Chat
-            </button>
-          </div>
-        )}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {activeConversation ? (
+            <ChatMessages 
+              messages={activeConversation.messages} 
+              onRateMessage={handleRateMessage} 
+              isGenerating={isGenerating} 
+              thinkingSteps={thinkingSteps} 
+            />
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center gap-4 p-4 text-center">
+              <Logo className="size-16 text-primary" />
+              <h1 className="text-2xl font-bold">How can I help you today?</h1>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 w-full max-w-3xl">
+                  <SamplePromptCard
+                      icon="⚖️"
+                      title="Draft a contract"
+                      subtitle="between a freelancer and a client."
+                      onClick={() => handleSendMessage("Draft a freelance contract for web design services.")}
+                  />
+                  <SamplePromptCard
+                      icon="📄"
+                      title="Summarize a document"
+                      subtitle="and explain its key clauses."
+                      onClick={() => handleSendMessage("Summarize the attached non-disclosure agreement and explain its key clauses.")}
+                  />
+                  <SamplePromptCard
+                      icon="❓"
+                      title="Explain a legal term"
+                      subtitle="like 'indemnification' in simple terms."
+                      onClick={() => handleSendMessage("What does 'indemnification' mean in a contract, in simple terms?")}
+                  />
+                  <SamplePromptCard
+                      icon="🇳🇵"
+                      title="Translate to Nepali"
+                      subtitle="a standard liability clause."
+                      onClick={() => handleSendMessage("Translate the following to Nepali: 'The service provider is not liable for any consequential or indirect damages.'")}
+                  />
+              </div>
+            </div>
+          )}
+          <ChatInput onSendMessage={handleSendMessage} isGenerating={isGenerating} />
+          <footer className="text-center text-xs text-muted-foreground p-2">
+            ⚠️ Disclaimer: Responses may be inaccurate. Verify with official legal sources.
+          </footer>
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );
 }
+
+    
