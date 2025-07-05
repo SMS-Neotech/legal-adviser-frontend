@@ -64,11 +64,11 @@ export function ChatMessage({ message, isLastMessage, isGenerating, onRateMessag
             <Avatar className="w-8 h-8 border mt-5">
                 <AvatarFallback>{isUser ? <User /> : <Gavel />}</AvatarFallback>
             </Avatar>
-            <div className={cn("group max-w-prose flex flex-col", isUser ? "items-end" : "items-start")}>
+            <div className={cn("group max-w-prose flex flex-col", isUser ? "items-end" : "items-start", !isUser && "mt-2")}>
                 <div className={cn("flex items-center", isUser ? "flex-row-reverse" : "flex-row")}>
                     <div className={cn(
                         "relative rounded-lg border bg-card text-card-foreground shadow-sm",
-                        isUser ? "rounded-tr-none" : "rounded-tl-none"
+                        isUser ? "rounded-br-none" : "rounded-tl-none"
                     )}>
                         <div className="p-4 space-y-4 break-words text-xs">
                         <ReactMarkdown
