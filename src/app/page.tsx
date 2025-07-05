@@ -391,7 +391,8 @@ export default function Home() {
               onRateMessage={handleRateMessage} 
               onCommentMessage={handleCommentMessage}
               isGenerating={isGenerating} 
-              thinkingSteps={thinkingSteps} 
+              thinkingSteps={thinkingSteps}
+              conversationId={activeConversationId}
             />
           ) : (
             <WelcomeScreen onSamplePromptClick={handleSendMessage} />

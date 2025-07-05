@@ -17,18 +17,25 @@ interface ChatMessagesProps {
   onCommentMessage: (messageId: string, comment: string) => void;
   isGenerating: boolean;
   thinkingSteps: (ThinkingStepType & { duration?: string })[];
+  conversationId: string | null;
 }
 
-export function ChatMessages({ messages, conversationCreatedAt, onRateMessage, onCommentMessage, isGenerating, thinkingSteps }: ChatMessagesProps) {
+export function ChatMessages({ messages, conversationCreatedAt, onRateMessage, onCommentMessage, isGenerating, thinkingSteps, conversationId }: ChatMessagesProps) {
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
   const viewportRef = React.useRef<HTMLDivElement>(null);
+  const prevConversationId = React.useRef<string | null>(null);
   let lastDate: Date | null = null;
 
   React.useEffect(() => {
-    if (viewportRef.current) {
+    if (!viewportRef.current) return;
+
+    if (prevConversationId.current !== conversationId) {
+      viewportRef.current.scrollTop = 0;
+      prevConversationId.current = conversationId;
+    } else {
       viewportRef.current.scrollTop = viewportRef.current.scrollHeight;
     }
-  }, [messages, isGenerating, thinkingSteps]);
+  }, [messages, isGenerating, thinkingSteps, conversationId]);
 
   return (
     <ScrollArea className="flex-1" ref={scrollAreaRef} viewportRef={viewportRef}>
