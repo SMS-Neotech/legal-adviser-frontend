@@ -37,37 +37,37 @@ export function ChatMessage({ message, onRateMessage, onCommentMessage }: ChatMe
   if (role === 'user') {
     return (
       <div className="flex justify-end w-full">
-          <div className="flex items-start gap-4">
-              <div className="flex flex-col items-end gap-1">
-                  <span className="text-xs text-muted-foreground">{format(new Date(createdAt), 'p')}</span>
-                  <div className="group max-w-prose rounded-lg border bg-card text-card-foreground shadow-sm">
-                      <div className="p-4 space-y-4 break-words text-xs">
-                      <ReactMarkdown
-                          remarkPlugins={[remarkGfm]}
-                          components={{
-                              p: ({...props}) => <p className="whitespace-pre-wrap" {...props} />,
-                              code({node, inline, className, children, ...props}) {
-                                  const match = /language-(\w+)/.exec(className || '');
-                                  if (!inline && match) {
-                                  return <CodeBlock language={match[1]} code={String(children).replace(/\n$/, '')} />
-                                  }
-                                  return (
-                                  <code className={cn("font-code bg-black/10 dark:bg-white/10 px-1 py-0.5 rounded-sm", className)} {...props}>
-                                      {children}
-                                  </code>
-                                  );
-                              },
-                          }}
-                          >
-                          {content}
-                      </ReactMarkdown>
-                      </div>
-                  </div>
-              </div>
-              <Avatar className="w-8 h-8">
-                  <AvatarFallback><User /></AvatarFallback>
-              </Avatar>
-          </div>
+        <div className="flex flex-col items-end">
+            <span className="text-xs text-muted-foreground mb-1 mr-12">{format(new Date(createdAt), 'p')}</span>
+            <div className="flex items-start gap-4">
+                <div className="group max-w-prose rounded-lg border bg-card text-card-foreground shadow-sm">
+                    <div className="p-4 space-y-4 break-words text-xs">
+                    <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                            p: ({...props}) => <p className="whitespace-pre-wrap" {...props} />,
+                            code({node, inline, className, children, ...props}) {
+                                const match = /language-(\w+)/.exec(className || '');
+                                if (!inline && match) {
+                                return <CodeBlock language={match[1]} code={String(children).replace(/\n$/, '')} />
+                                }
+                                return (
+                                <code className={cn("font-code bg-black/10 dark:bg-white/10 px-1 py-0.5 rounded-sm", className)} {...props}>
+                                    {children}
+                                </code>
+                                );
+                            },
+                        }}
+                        >
+                        {content}
+                    </ReactMarkdown>
+                    </div>
+                </div>
+                <Avatar className="w-8 h-8 border">
+                    <AvatarFallback><User /></AvatarFallback>
+                </Avatar>
+            </div>
+        </div>
       </div>
     )
   }
@@ -76,7 +76,7 @@ export function ChatMessage({ message, onRateMessage, onCommentMessage }: ChatMe
     <div className={cn(
       "flex items-start gap-4",
     )}>
-      <Avatar className="w-8 h-8">
+      <Avatar className="w-8 h-8 border">
         <AvatarFallback><Gavel /></AvatarFallback>
       </Avatar>
       <div className={cn(
