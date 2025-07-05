@@ -130,6 +130,7 @@ export default function Home() {
     let currentConversations = conversations;
     let isNewChat = !conversationId || (activeConversation && activeConversation.messages.length === 0);
 
+    let finalConversations: Conversation[] = [];
     if (isNewChat) {
       const newConversationId = uuidv4();
       const newConversation: Conversation = {
@@ -138,24 +139,23 @@ export default function Home() {
         messages: [],
         createdAt: Date.now(),
       };
-      // Add the new conversation to the beginning of the list
       const updatedConversations = [newConversation, ...conversations.filter(c => c.messages.length > 0)];
-      setConversations(updatedConversations);
-      currentConversations = updatedConversations;
+      finalConversations = updatedConversations;
       setActiveConversationId(newConversationId);
       conversationId = newConversationId;
+    } else {
+        finalConversations = [...conversations];
     }
     
     const userMessage: Message = { id: uuidv4(), role: 'user', content };
     const assistantMessage: Message = { id: uuidv4(), role: "assistant", content: "" };
     
-    // Add messages to the conversation
-    const updatedConversationsWithMessages = currentConversations.map(c => 
-        c.id === conversationId 
-            ? { ...c, messages: [...c.messages, userMessage, assistantMessage] } 
-            : c
-    );
-    setConversations(updatedConversationsWithMessages);
+    const targetConversationIndex = finalConversations.findIndex(c => c.id === conversationId);
+    if(targetConversationIndex !== -1) {
+        finalConversations[targetConversationIndex].messages.push(userMessage, assistantMessage);
+    }
+    
+    setConversations(finalConversations);
     
     setIsGenerating(true);
     setThinkingSteps([]);
@@ -201,15 +201,17 @@ export default function Home() {
                           setThinkingSteps([]);
                           answeringStarted = true;
                       }
-                      setConversations(prev => prev.map(c => {
-                          if (c.id !== conversationId) return c;
-                          const newMessages = [...c.messages];
-                          const lastMessage = newMessages[newMessages.length - 1];
-                          if (lastMessage && lastMessage.role === 'assistant') {
-                              lastMessage.content += data.message;
-                          }
-                          return { ...c, messages: newMessages };
-                      }));
+                      setConversations(prev => {
+                          return prev.map(c => {
+                              if (c.id !== conversationId) return c;
+                              const newMessages = [...c.messages];
+                              const lastMessage = newMessages[newMessages.length - 1];
+                              if (lastMessage && lastMessage.role === 'assistant') {
+                                  lastMessage.content += data.message;
+                              }
+                              return { ...c, messages: newMessages };
+                          });
+                      });
                   } else if (data.step && !answeringStarted) {
                       setThinkingSteps(prev => {
                           const existingStepIndex = prev.findIndex(s => s.step === data.step);
@@ -286,7 +288,7 @@ export default function Home() {
     <SidebarProvider>
       <Sidebar side="left" collapsible="icon" className="group" variant="sidebar">
         <SidebarHeader>
-          <div className="flex items-center justify-between group-data-[collapsible=icon]:justify-center">
+          <div className="flex items-center justify-between group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:gap-4 group-data-[collapsible=icon]:py-2">
             <div className="flex items-center gap-2">
               <Logo className="size-6 text-primary" aria-label="Legal Advisor Logo" />
               <h2 className="text-lg font-semibold group-data-[collapsible=icon]:hidden">
