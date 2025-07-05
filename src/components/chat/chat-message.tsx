@@ -57,12 +57,11 @@ export function ChatMessage({ message, onRateMessage }: ChatMessageProps) {
         </Avatar>
       )}
       <div className={cn(
-        "group max-w-2xl break-words",
+        "group max-w-prose break-words",
         role === 'user' ? 'order-1' : 'order-2'
       )}>
         <div className={cn(
-          "px-4 py-3 rounded-lg",
-          role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'
+          role === 'user' ? 'pt-1.5' : 'px-4 py-3 rounded-lg bg-muted'
         )}>
           {renderContent(content)}
         </div>
