@@ -20,6 +20,7 @@ import { ChatInput } from "@/components/chat/chat-input";
 import { Logo } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 import { type ThinkingStep } from "@/lib/api-types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function Home() {
   const { toast } = useToast();
@@ -30,6 +31,7 @@ export default function Home() {
   );
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [thinkingSteps, setThinkingSteps] = React.useState<ThinkingStep[]>([]);
+  const [selectedModel, setSelectedModel] = React.useState('Gemini Flash');
 
   const activeConversation = React.useMemo(() => {
     return conversations.find((c) => c.id === activeConversationId) || null;
@@ -93,7 +95,7 @@ export default function Home() {
       const response = await fetch('http://localhost:8000/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ queries: [content] }),
+        body: JSON.stringify({ queries: [content], model: selectedModel }),
       });
 
       if (!response.ok) {
@@ -222,12 +224,27 @@ export default function Home() {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="flex flex-col h-svh">
-        <header className="p-2 border-b flex items-center justify-between md:justify-end">
+        <header className="p-2 border-b flex items-center justify-between">
             <SidebarTrigger className="md:hidden" />
-            <span className="font-semibold text-center flex-1 md:hidden truncate px-2">
-              {activeConversation?.title ?? "Legal Advisor"}
-            </span>
-            <div className="md:hidden w-7"></div>
+            <div className="flex-1 flex justify-center">
+              {activeConversation ? (
+                <Select value={selectedModel} onValueChange={setSelectedModel}>
+                    <SelectTrigger className="w-auto md:w-[180px] bg-transparent border-none focus:ring-0 shadow-none text-base font-semibold">
+                        <SelectValue placeholder="Select a model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="ChatGPT">ChatGPT</SelectItem>
+                        <SelectItem value="Gemini Pro">Gemini Pro</SelectItem>
+                        <SelectItem value="Gemini Flash">Gemini Flash</SelectItem>
+                    </SelectContent>
+                </Select>
+              ) : (
+                <span className="font-semibold text-lg">
+                  Legal Advisor
+                </span>
+              )}
+            </div>
+            <div className="w-8" />
         </header>
 
         {activeConversation ? (
