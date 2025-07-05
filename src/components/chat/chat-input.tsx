@@ -43,7 +43,7 @@ export function ChatInput({ onSendMessage, isGenerating }: ChatInputProps) {
 
   return (
     <div className="p-4 bg-background border-t">
-      <div className="flex items-end w-full p-1 pl-4 border rounded-full bg-muted/50">
+      <div className="flex items-center w-full p-1 pl-4 border rounded-full bg-muted/50">
         <Textarea
           ref={textareaRef}
           value={content}

@@ -84,27 +84,27 @@ export default function Home() {
   const handleSendMessage = async (content: string) => {
     if (!content.trim()) return;
 
-    const isNewChat = !activeConversationId;
-    const conversationId = activeConversationId || uuidv4();
+    let conversationId = activeConversationId;
+    let isNewChat = !conversationId;
 
-    // If it's a new conversation, create it and add it to state immediately.
-    // This happens before we add any messages.
+    // If it's a new conversation, create it.
     if (isNewChat) {
-      const newConversation: Conversation = {
-        id: conversationId,
-        title: content.substring(0, 30),
-        messages: [],
-        createdAt: Date.now(),
-      };
-      setConversations(prev => [newConversation, ...prev]);
-      setActiveConversationId(conversationId);
+        const newConversationId = uuidv4();
+        const newConversation: Conversation = {
+            id: newConversationId,
+            title: content.substring(0, 30), // Set title from first message
+            messages: [],
+            createdAt: Date.now(),
+        };
+        setConversations(prev => [newConversation, ...prev]);
+        setActiveConversationId(newConversationId);
+        conversationId = newConversationId; // Use the new ID for the rest of the function
     }
     
     const userMessage: Message = { id: uuidv4(), role: 'user', content };
     const assistantMessage: Message = { id: uuidv4(), role: "assistant", content: "" };
 
-    // Add user message and assistant placeholder using a functional update
-    // This ensures we're updating the correct conversation (new or existing)
+    // Add user message and assistant placeholder
     setConversations(prev => prev.map(c => 
       c.id === conversationId 
         ? { ...c, messages: [...c.messages, userMessage, assistantMessage] } 
@@ -160,21 +160,25 @@ export default function Home() {
                       });
                   } else if (data.content) {
                       setConversations(prevConversations => {
-                        return prevConversations.map(c => {
-                          if (c.id === conversationId) {
-                            const newMessages = [...c.messages];
-                            const lastMessageIndex = newMessages.length - 1;
-                            if (lastMessageIndex >= 0 && newMessages[lastMessageIndex].role === 'assistant') {
-                              const updatedAssistantMessage = {
-                                ...newMessages[lastMessageIndex],
-                                content: newMessages[lastMessageIndex].content + data.content
-                              };
-                              newMessages[lastMessageIndex] = updatedAssistantMessage;
-                              return { ...c, messages: newMessages };
-                            }
+                          const newConversations = [...prevConversations];
+                          const convIndex = newConversations.findIndex(c => c.id === conversationId);
+
+                          if (convIndex > -1) {
+                              const conversationToUpdate = { ...newConversations[convIndex] };
+                              const messages = [...conversationToUpdate.messages];
+                              const lastMessageIndex = messages.length - 1;
+
+                              if (lastMessageIndex >= 0 && messages[lastMessageIndex].role === 'assistant') {
+                                  messages[lastMessageIndex] = {
+                                      ...messages[lastMessageIndex],
+                                      content: messages[lastMessageIndex].content + data.content
+                                  };
+                                  conversationToUpdate.messages = messages;
+                                  newConversations[convIndex] = conversationToUpdate;
+                                  return newConversations;
+                              }
                           }
-                          return c;
-                        });
+                          return prevConversations;
                       });
                   }
                 } catch (e) {
@@ -279,28 +283,28 @@ export default function Home() {
               <h1 className="text-2xl font-bold">How can I help you today?</h1>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 w-full max-w-3xl">
                   <SamplePromptCard
-                      icon="⚖️"
-                      title="Draft a contract"
-                      subtitle="between a freelancer and a client."
-                      onClick={() => handleSendMessage("Draft a freelance contract for web design services.")}
+                      icon="📝"
+                      title="Draft a rental agreement"
+                      subtitle="for a residential property."
+                      onClick={() => handleSendMessage("Draft a simple rental agreement (ghar-bahal karar) for a residential property in Kathmandu, Nepal.")}
                   />
                   <SamplePromptCard
-                      icon="📄"
-                      title="Summarize a document"
-                      subtitle="and explain its key clauses."
-                      onClick={() => handleSendMessage("Summarize the attached non-disclosure agreement and explain its key clauses.")}
+                      icon="🏢"
+                      title="Register a company"
+                      subtitle="and list the required documents."
+                      onClick={() => handleSendMessage("What is the process and what are the required documents for registering a private limited company in Nepal?")}
                   />
                   <SamplePromptCard
-                      icon="❓"
-                      title="Explain a legal term"
-                      subtitle="like 'indemnification' in simple terms."
-                      onClick={() => handleSendMessage("What does 'indemnification' mean in a contract, in simple terms?")}
+                      icon="📜"
+                      title="Explain Nepal's Labor Act"
+                      subtitle="regarding employee rights."
+                      onClick={() => handleSendMessage("Summarize the key provisions of the Nepal Labor Act, 2074 regarding employee rights.")}
                   />
                   <SamplePromptCard
                       icon="🇳🇵"
-                      title="Translate to Nepali"
-                      subtitle="a standard liability clause."
-                      onClick={() => handleSendMessage("Translate the following to Nepali: 'The service provider is not liable for any consequential or indirect damages.'")}
+                      title="Translate a legal phrase"
+                      subtitle="from English to Nepali."
+                      onClick={() => handleSendMessage("Translate the following legal phrase to Nepali: 'This agreement shall be governed by and construed in accordance with the laws of Nepal.'")}
                   />
               </div>
             </div>
@@ -314,5 +318,3 @@ export default function Home() {
     </SidebarProvider>
   );
 }
-
-    
