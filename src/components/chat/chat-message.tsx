@@ -34,46 +34,55 @@ export function ChatMessage({ message, onRateMessage, onCommentMessage }: ChatMe
     setCommentText(comment || "");
   }, [comment]);
 
+  if (role === 'user') {
+    return (
+      <div className="flex justify-end w-full">
+          <div className="flex flex-col items-end gap-1">
+              <span className="text-xs text-muted-foreground">{format(new Date(createdAt), 'p')}</span>
+              <div className="flex items-start gap-4">
+                  <div className="group max-w-prose rounded-lg border bg-card text-card-foreground shadow-sm">
+                      <div className="p-4 space-y-4 break-words">
+                      <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                              p: ({...props}) => <p className="whitespace-pre-wrap" {...props} />,
+                              code({node, inline, className, children, ...props}) {
+                                  const match = /language-(\w+)/.exec(className || '');
+                                  if (!inline && match) {
+                                  return <CodeBlock language={match[1]} code={String(children).replace(/\n$/, '')} />
+                                  }
+                                  return (
+                                  <code className={cn("font-code bg-black/10 dark:bg-white/10 px-1 py-0.5 rounded-sm", className)} {...props}>
+                                      {children}
+                                  </code>
+                                  );
+                              },
+                          }}
+                          >
+                          {content}
+                      </ReactMarkdown>
+                      </div>
+                  </div>
+                  <Avatar className="w-8 h-8">
+                      <AvatarFallback><User /></AvatarFallback>
+                  </Avatar>
+              </div>
+          </div>
+      </div>
+    )
+  }
+
   return (
     <div className={cn(
       "flex items-start gap-4",
-      role === 'user' ? 'justify-end' : ''
     )}>
-      {role === 'assistant' && (
-        <Avatar className="w-8 h-8">
-          <AvatarFallback><Gavel /></AvatarFallback>
-        </Avatar>
-      )}
+      <Avatar className="w-8 h-8">
+        <AvatarFallback><Gavel /></AvatarFallback>
+      </Avatar>
       <div className={cn(
-        "group max-w-prose",
-        role === 'user' ? 'order-1' : 'order-2'
+        "group max-w-prose"
       )}>
-        {role === 'user' ? (
-          <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-            <div className="p-4 space-y-4 break-words">
-              <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  components={{
-                    p: ({...props}) => <p className="whitespace-pre-wrap" {...props} />,
-                    code({node, inline, className, children, ...props}) {
-                        const match = /language-(\w+)/.exec(className || '');
-                        if (!inline && match) {
-                          return <CodeBlock language={match[1]} code={String(children).replace(/\n$/, '')} />
-                        }
-                        return (
-                          <code className={cn("font-code bg-black/10 dark:bg-white/10 px-1 py-0.5 rounded-sm", className)} {...props}>
-                              {children}
-                          </code>
-                        );
-                    },
-                  }}
-                >
-                  {content}
-              </ReactMarkdown>
-            </div>
-          </div>
-        ) : (
-          <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+        <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
             <div className="p-4 space-y-4 break-words">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
@@ -158,17 +167,8 @@ export function ChatMessage({ message, onRateMessage, onCommentMessage }: ChatMe
                 </span>
               </div>
             )}
-          </div>
-        )}
-      </div>
-      {role === 'user' && (
-        <div className="flex items-end gap-2 order-2">
-            <span className="text-xs text-muted-foreground">{format(new Date(createdAt), 'p')}</span>
-            <Avatar className="w-8 h-8">
-              <AvatarFallback><User /></AvatarFallback>
-            </Avatar>
         </div>
-      )}
+      </div>
     </div>
   );
 }
