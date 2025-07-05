@@ -136,21 +136,27 @@ export default function Home() {
                           return [...prev, data];
                       });
                   } else if (data.content) {
-                      setConversations(currentConversations => {
-                          return currentConversations.map(conv => {
-                              if (conv.id === activeConversationId) {
-                                  const newMessages = [...conv.messages];
-                                  const lastMessage = newMessages[newMessages.length - 1];
-                                  if (lastMessage && lastMessage.role === 'assistant') {
-                                      newMessages[newMessages.length - 1] = {
-                                          ...lastMessage,
-                                          content: lastMessage.content + data.content,
-                                      };
-                                  }
-                                  return { ...conv, messages: newMessages };
-                              }
-                              return conv;
-                          });
+                      setConversations(prevConversations => {
+                          const activeConvIndex = prevConversations.findIndex(c => c.id === activeConversationId);
+                          if (activeConvIndex === -1) return prevConversations;
+                          
+                          const newConversations = [...prevConversations];
+                          const activeConversation = { ...newConversations[activeConvIndex] };
+                          const newMessages = [...activeConversation.messages];
+                          const lastMessageIndex = newMessages.length - 1;
+                          const lastMessage = newMessages[lastMessageIndex];
+
+                          if (lastMessage && lastMessage.role === 'assistant') {
+                              newMessages[lastMessageIndex] = {
+                                  ...lastMessage,
+                                  content: lastMessage.content + data.content,
+                              };
+                          }
+                          
+                          activeConversation.messages = newMessages;
+                          newConversations[activeConvIndex] = activeConversation;
+                          
+                          return newConversations;
                       });
                   }
                 } catch (e) {
@@ -220,7 +226,6 @@ export default function Home() {
           />
         </SidebarContent>
         <SidebarFooter className="items-center group-data-[collapsible=icon]:flex-col">
-          <ThemeToggle />
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="flex flex-col h-svh">
@@ -244,7 +249,7 @@ export default function Home() {
                 </span>
               )}
             </div>
-            <div className="w-8" />
+            <ThemeToggle />
         </header>
 
         {activeConversation ? (
