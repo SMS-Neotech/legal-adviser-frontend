@@ -19,7 +19,6 @@ import { ChatMessages } from "@/components/chat/chat-messages";
 import { ChatInput } from "@/components/chat/chat-input";
 import { Logo } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
-import { generateConversationTitle } from "@/ai/flows/generate-conversation-title";
 import { type ThinkingStep } from "@/lib/api-types";
 
 export default function Home() {
@@ -52,47 +51,43 @@ export default function Home() {
   };
 
   const handleDeleteConversation = (id: string) => {
-    const updatedConversations = conversations.filter((c) => c.id !== id);
-    setConversations(updatedConversations);
-    if (activeConversationId === id) {
-      setActiveConversationId(updatedConversations.length > 0 ? updatedConversations[0].id : null);
-    }
+    setConversations(prev => {
+      const updatedConversations = prev.filter((c) => c.id !== id);
+      if (activeConversationId === id) {
+        setActiveConversationId(updatedConversations.length > 0 ? updatedConversations[0].id : null);
+      }
+      return updatedConversations;
+    });
   };
 
   const handleRenameConversation = (id: string, newTitle: string) => {
-    const updatedConversations = conversations.map((c) =>
+    setConversations(prev => prev.map((c) =>
       c.id === id ? { ...c, title: newTitle } : c
-    );
-    setConversations(updatedConversations);
+    ));
   };
 
   const handleSendMessage = async (content: string) => {
     if (!activeConversation) return;
 
     const userMessage: Message = { id: uuidv4(), role: 'user', content };
-    const updatedMessages = [...activeConversation.messages, userMessage];
-    const updatedConversation = { ...activeConversation, messages: updatedMessages };
 
-    setConversations(prev => prev.map(c => c.id === activeConversationId ? updatedConversation : c));
+    let newTitle = activeConversation.title;
+    const isFirstUserMessage = activeConversation.messages.filter(m => m.role === 'user').length === 0;
+    if (isFirstUserMessage && activeConversation.title === "New Conversation") {
+      newTitle = content.substring(0, 30);
+    }
+    
+    const assistantMessage: Message = { id: uuidv4(), role: "assistant", content: "" };
+
+    const updatedConversationWithUserAndAssistantShell = {
+      ...activeConversation,
+      title: newTitle,
+      messages: [...activeConversation.messages, userMessage, assistantMessage],
+    };
+
+    setConversations(prev => prev.map(c => c.id === activeConversationId ? updatedConversationWithUserAndAssistantShell : c));
     setIsGenerating(true);
     setThinkingSteps([]);
-
-    // Generate title after first user message
-    if (updatedMessages.filter(m => m.role === 'user').length === 1 && updatedConversation.title === "New Conversation") {
-        try {
-          const conversationHistory = updatedMessages.map(m => `${m.role}: ${m.content}`).join('\n');
-          const { title } = await generateConversationTitle({ conversationHistory });
-          handleRenameConversation(activeConversation.id, title);
-        } catch (error) {
-          console.error("Error generating title:", error);
-        }
-    }
-
-    const assistantMessage: Message = { id: uuidv4(), role: "assistant", content: "" };
-    const finalMessages = [...updatedMessages, assistantMessage];
-    const finalConversation = { ...updatedConversation, messages: finalMessages };
-
-    setConversations(prev => prev.map(c => c.id === activeConversationId ? finalConversation : c));
 
     try {
       const response = await fetch('http://localhost:8000/chat', {
@@ -168,12 +163,13 @@ export default function Home() {
         title: "An error occurred.",
         description: "Failed to get a response. Please try again.",
       });
-      const conv = conversations.find(c => c.id === activeConversationId);
-      if (conv) {
-          const newMessages = conv.messages.filter(m => m.id !== assistantMessage.id);
-          const restoredConv = {...conv, messages: newMessages};
-          setConversations(conversations.map(c => c.id === activeConversationId ? restoredConv : c));
-      }
+      setConversations(prev => prev.map(c => {
+          if (c.id === activeConversationId) {
+              const newMessages = c.messages.filter(m => m.id !== assistantMessage.id);
+              return {...c, messages: newMessages};
+          }
+          return c;
+      }));
     } finally {
       setIsGenerating(false);
       setThinkingSteps([]);

@@ -26,7 +26,7 @@ export function ChatInput({ onSendMessage, isGenerating }: ChatInputProps) {
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+    if (event.key === "Enter" && !event.altKey) {
       event.preventDefault();
       handleSendMessage();
     }
@@ -49,7 +49,7 @@ export function ChatInput({ onSendMessage, isGenerating }: ChatInputProps) {
           value={content}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          placeholder="Type your message here... (⌘+↵ to send)"
+          placeholder="Type your message here... (Enter to send, Alt+Enter for new line)"
           className="flex-1 py-2 resize-none max-h-48 bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0"
           rows={1}
           disabled={isGenerating}
