@@ -18,7 +18,6 @@ import {
 import { ConversationList } from "@/components/chat/conversation-list";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { type Conversation, type Message } from "@/lib/types";
-import { useLocalStorage } from "@/hooks/use-local-storage";
 import { ChatMessages } from "@/components/chat/chat-messages";
 import { ChatInput } from "@/components/chat/chat-input";
 import { Logo } from "@/components/icons";
@@ -30,6 +29,8 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LogOut, User } from "lucide-react";
+import { getConversations, addConversationWithId, updateConversation, deleteConversation } from "@/lib/firestore";
+
 
 type ThinkingStep = ThinkingStepApiType & {
   startTime?: number;
@@ -88,11 +89,8 @@ export default function Home() {
   const { user, loading, logout } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [conversations, setConversations] = useLocalStorage<Conversation[]>("conversations", []);
-  const [activeConversationId, setActiveConversationId] = useLocalStorage<string | null>(
-    "activeConversationId",
-    null
-  );
+  const [conversations, setConversations] = React.useState<Conversation[]>([]);
+  const [activeConversationId, setActiveConversationId] = React.useState<string | null>(null);
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [thinkingSteps, setThinkingSteps] = React.useState<ThinkingStep[]>([]);
   const [selectedModel, setSelectedModel] = React.useState('Gemini Flash');
@@ -103,79 +101,132 @@ export default function Home() {
     }
   }, [user, loading, router]);
 
+  useEffect(() => {
+    if (user && !loading) {
+      const fetchConversations = async () => {
+        try {
+          const userConversations = await getConversations(user.uid);
+          setConversations(userConversations);
+        } catch (error) {
+          console.error("Error fetching conversations:", error);
+          toast({
+            variant: "destructive",
+            title: "Failed to load chats.",
+            description: "Could not fetch your conversation history.",
+          });
+        }
+      };
+      fetchConversations();
+    }
+  }, [user, loading, toast]);
+
+  useEffect(() => {
+    setActiveConversationId(null);
+  }, []);
+
   const activeConversation = React.useMemo(() => {
     return conversations.find((c) => c.id === activeConversationId) || null;
   }, [conversations, activeConversationId]);
 
   const handleNewConversation = () => {
-    const newConversation: Conversation = {
-      id: uuidv4(),
-      title: "New Conversation",
-      messages: [],
-      createdAt: Date.now(),
-    };
-    setConversations([newConversation, ...conversations]);
-    setActiveConversationId(newConversation.id);
+    setActiveConversationId(null);
   };
 
   const handleSelectConversation = (id: string) => {
     setActiveConversationId(id);
   };
 
-  const handleDeleteConversation = (id: string) => {
-    setConversations(prev => {
-      const updatedConversations = prev.filter((c) => c.id !== id);
-      if (activeConversationId === id) {
-        setActiveConversationId(updatedConversations.length > 0 ? updatedConversations[0].id : null);
-      }
-      return updatedConversations;
-    });
+  const handleDeleteConversation = async (id: string) => {
+    if (!user) return;
+    
+    const originalConversations = conversations;
+    const updatedConversations = originalConversations.filter((c) => c.id !== id);
+    setConversations(updatedConversations);
+    if (activeConversationId === id) {
+      setActiveConversationId(null);
+    }
+
+    try {
+      await deleteConversation(user.uid, id);
+    } catch (error) {
+      console.error("Error deleting conversation:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete conversation.",
+      });
+      setConversations(originalConversations);
+    }
   };
 
-  const handleRenameConversation = (id: string, newTitle: string) => {
+  const handleRenameConversation = async (id: string, newTitle: string) => {
+    if (!user) return;
+    
+    const originalTitle = conversations.find(c => c.id === id)?.title;
+    
     setConversations(prev => prev.map((c) =>
       c.id === id ? { ...c, title: newTitle } : c
     ));
+
+    try {
+      await updateConversation(user.uid, id, { title: newTitle });
+    } catch (error) {
+        console.error("Error renaming conversation:", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to rename conversation.",
+        });
+        setConversations(prev => prev.map((c) =>
+            c.id === id ? { ...c, title: originalTitle || c.title } : c
+        ));
+    }
   };
 
   const handleSendMessage = async (content: string) => {
-    if (!content.trim()) return;
+    if (!content.trim() || !user) return;
+
+    setIsGenerating(true);
+    setThinkingSteps([]);
+
+    const userMessage: Message = { id: uuidv4(), role: 'user', content, createdAt: Date.now() };
+    const assistantMessage: Message = { id: uuidv4(), role: "assistant", content: "", createdAt: Date.now() };
 
     let conversationId = activeConversationId;
-    let currentConversations = conversations;
-    let isNewChat = !conversationId || (activeConversation && activeConversation.messages.length === 0);
+    let isNewChat = !conversationId;
+    let tempConversations = [...conversations];
 
-    let finalConversations: Conversation[] = [];
     if (isNewChat) {
       const newConversationId = uuidv4();
       const newConversation: Conversation = {
         id: newConversationId,
         title: content.substring(0, 30),
-        messages: [],
+        messages: [userMessage, assistantMessage],
         createdAt: Date.now(),
       };
-      const updatedConversations = [newConversation, ...conversations.filter(c => c.messages.length > 0)];
-      finalConversations = updatedConversations;
+      
+      tempConversations = [newConversation, ...conversations];
       setActiveConversationId(newConversationId);
       conversationId = newConversationId;
-    } else {
-        finalConversations = [...conversations];
-    }
-    
-    const userMessage: Message = { id: uuidv4(), role: 'user', content, createdAt: Date.now() };
-    const assistantMessage: Message = { id: uuidv4(), role: "assistant", content: "", createdAt: Date.now() };
-    
-    const targetConversationIndex = finalConversations.findIndex(c => c.id === conversationId);
-    if(targetConversationIndex !== -1) {
-        finalConversations[targetConversationIndex].messages.push(userMessage, assistantMessage);
-    }
-    
-    setConversations(finalConversations);
-    
-    setIsGenerating(true);
-    setThinkingSteps([]);
 
+      try {
+        await addConversationWithId(user.uid, newConversation);
+      } catch (error) {
+        console.error("Failed to create new conversation:", error);
+        toast({ variant: "destructive", title: "Error", description: "Could not create a new chat. Please try again." });
+        setIsGenerating(false);
+        return;
+      }
+    } else {
+      tempConversations = conversations.map(c => 
+        c.id === conversationId ? { ...c, messages: [...c.messages, userMessage, assistantMessage] } : c
+      );
+    }
+
+    setConversations(tempConversations);
+    
     let answeringStarted = false;
+    let finalAssistantContent = "";
 
     try {
       const response = await fetch('http://localhost:8000/chat', {
@@ -205,49 +256,50 @@ export default function Home() {
         buffer = lines.pop() || '';
 
         for (const line of lines) {
-            if (line.startsWith('data: ')) {
-                const dataStr = line.substring(6);
-                if (!dataStr) continue;
-                try {
-                  const data = JSON.parse(dataStr);
+          if (line.startsWith('data: ')) {
+            const dataStr = line.substring(6);
+            if (!dataStr) continue;
+            try {
+              const data = JSON.parse(dataStr);
 
-                  if (data.step === 'Answering' && data.message) {
-                      if (!answeringStarted) {
-                          setThinkingSteps([]);
-                          answeringStarted = true;
-                      }
-                      setConversations(prev => {
-                          return prev.map(c => {
-                              if (c.id !== conversationId) return c;
-                              const newMessages = [...c.messages];
-                              const lastMessage = newMessages[newMessages.length - 1];
-                              if (lastMessage && lastMessage.role === 'assistant') {
-                                  lastMessage.content += data.message;
-                              }
-                              return { ...c, messages: newMessages };
-                          });
-                      });
-                  } else if (data.step && !answeringStarted) {
-                      setThinkingSteps(prev => {
-                          const existingStepIndex = prev.findIndex(s => s.step === data.step);
-                          if (existingStepIndex > -1) {
-                              const newSteps = [...prev];
-                              const existingStep = newSteps[existingStepIndex];
-                              if (data.status === 'result' && existingStep.startTime) {
-                                  const duration = (Date.now() - existingStep.startTime) / 1000;
-                                  newSteps[existingStepIndex] = { ...data, startTime: existingStep.startTime, duration: `${duration.toFixed(2)}s` };
-                              } else {
-                                  newSteps[existingStepIndex] = { ...data, startTime: existingStep.startTime };
-                              }
-                              return newSteps;
-                          }
-                          return [...prev, { ...data, startTime: Date.now() }];
-                      });
-                  }
-                } catch (e) {
-                  console.error("Failed to parse SSE data chunk:", dataStr, e);
+              if (data.step === 'Answering' && data.message) {
+                if (!answeringStarted) {
+                  setThinkingSteps([]);
+                  answeringStarted = true;
                 }
+                finalAssistantContent += data.message;
+                setConversations(prev => {
+                  return prev.map(c => {
+                    if (c.id !== conversationId) return c;
+                    const newMessages = [...c.messages];
+                    const lastMessage = newMessages[newMessages.length - 1];
+                    if (lastMessage && lastMessage.role === 'assistant') {
+                      lastMessage.content = finalAssistantContent;
+                    }
+                    return { ...c, messages: newMessages };
+                  });
+                });
+              } else if (data.step && !answeringStarted) {
+                setThinkingSteps(prev => {
+                  const existingStepIndex = prev.findIndex(s => s.step === data.step);
+                  if (existingStepIndex > -1) {
+                    const newSteps = [...prev];
+                    const existingStep = newSteps[existingStepIndex];
+                    if (data.status === 'result' && existingStep.startTime) {
+                      const duration = (Date.now() - existingStep.startTime) / 1000;
+                      newSteps[existingStepIndex] = { ...data, startTime: existingStep.startTime, duration: `${duration.toFixed(2)}s` };
+                    } else {
+                      newSteps[existingStepIndex] = { ...data, startTime: existingStep.startTime };
+                    }
+                    return newSteps;
+                  }
+                  return [...prev, { ...data, startTime: Date.now() }];
+                });
+              }
+            } catch (e) {
+              console.error("Failed to parse SSE data chunk:", dataStr, e);
             }
+          }
         }
       }
     } catch (error) {
@@ -257,39 +309,77 @@ export default function Home() {
         description: "Failed to get a response. Please try again.",
       });
       setConversations(prev => prev.map(c => {
-          if (c.id === conversationId) {
-              const newMessages = c.messages.filter(m => m.id !== assistantMessage.id);
-              return {...c, messages: newMessages};
-          }
-          return c;
+        if (c.id === conversationId) {
+          const newMessages = c.messages.filter(m => m.id !== assistantMessage.id);
+          return {...c, messages: newMessages};
+        }
+        return c;
       }));
     } finally {
       setIsGenerating(false);
       setThinkingSteps([]);
+      
+      if (conversationId && user) {
+        const finalConversation = conversations.find(c => c.id === conversationId) || tempConversations.find(c => c.id === conversationId);
+        if (finalConversation) {
+          try {
+            const finalMessages = finalConversation.messages.map(m => m.id === assistantMessage.id ? { ...m, content: finalAssistantContent } : m);
+            const messagesToSave = finalAssistantContent ? finalMessages : finalMessages.filter(m => m.id !== assistantMessage.id);
+            await updateConversation(user.uid, conversationId, { messages: messagesToSave });
+          } catch (error) {
+            console.error("Failed to save final conversation state:", error);
+            toast({ variant: "destructive", title: "Sync Error", description: "Failed to save the conversation." });
+          }
+        }
+      }
     }
   };
 
 
-  const handleRateMessage = (messageId: string, rating: number) => {
-    if (!activeConversation) return;
-    const updatedMessages = activeConversation.messages.map(m =>
-      m.id === messageId ? { ...m, rating } : m
+  const handleRateMessage = async (messageId: string, rating: number) => {
+    if (!user || !activeConversation) return;
+
+    const originalMessages = activeConversation.messages;
+    const updatedMessages = originalMessages.map(m =>
+      m.id === messageId ? { ...m, rating, comment: m.comment || '' } : m // Ensure comment is not undefined
     );
-    const updatedConversation = { ...activeConversation, messages: updatedMessages };
+    
     setConversations(conversations.map((c) =>
-      c.id === activeConversationId ? updatedConversation : c
+      c.id === activeConversationId ? { ...c, messages: updatedMessages } : c
     ));
+
+    try {
+      await updateConversation(user.uid, activeConversation.id, { messages: updatedMessages });
+    } catch (error) {
+      console.error("Error rating message:", error);
+      toast({ variant: "destructive", title: "Error", description: "Failed to save rating." });
+      setConversations(conversations.map((c) =>
+        c.id === activeConversationId ? { ...c, messages: originalMessages } : c
+      ));
+    }
   };
 
-  const handleCommentMessage = (messageId: string, comment: string) => {
-    if (!activeConversation) return;
-    const updatedMessages = activeConversation.messages.map(m =>
-      m.id === messageId ? { ...m, comment } : m
+  const handleCommentMessage = async (messageId: string, comment: string) => {
+    if (!user || !activeConversation) return;
+    
+    const originalMessages = activeConversation.messages;
+    const updatedMessages = originalMessages.map(m =>
+      m.id === messageId ? { ...m, comment, rating: m.rating || 0 } : m // Ensure rating is not undefined
     );
-    const updatedConversation = { ...activeConversation, messages: updatedMessages };
+
     setConversations(conversations.map((c) =>
-      c.id === activeConversationId ? updatedConversation : c
+      c.id === activeConversationId ? { ...c, messages: updatedMessages } : c
     ));
+
+    try {
+      await updateConversation(user.uid, activeConversation.id, { messages: updatedMessages });
+    } catch (error) {
+      console.error("Error commenting on message:", error);
+      toast({ variant: "destructive", title: "Error", description: "Failed to save comment." });
+      setConversations(conversations.map((c) =>
+        c.id === activeConversationId ? { ...c, messages: originalMessages } : c
+      ));
+    }
   };
 
   if (loading || !user) {
@@ -319,7 +409,7 @@ export default function Home() {
         </SidebarHeader>
         <SidebarContent>
           <ConversationList
-            conversations={conversations.filter(c => c.messages.length > 0)}
+            conversations={conversations}
             activeConversationId={activeConversationId}
             onSelectConversation={handleSelectConversation}
             onDeleteConversation={handleDeleteConversation}

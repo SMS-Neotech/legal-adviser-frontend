@@ -1,7 +1,10 @@
+
 "use client";
 
 import { useState, useEffect, Dispatch, SetStateAction, useCallback } from 'react';
 
+// This is a generic hook to use local storage. It's not currently used for conversations,
+// but it's kept here for other potential uses.
 export function useLocalStorage<T>(key: string, initialValue: T): [T, Dispatch<SetStateAction<T>>] {
   const [state, setState] = useState<T>(() => {
     if (typeof window === 'undefined') {
