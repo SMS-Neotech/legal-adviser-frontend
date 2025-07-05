@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -7,18 +8,21 @@ import { ChatMessage } from "./chat-message";
 import { Gavel } from "lucide-react";
 import { ThinkingStep } from "./thinking-step";
 import { type ThinkingStep as ThinkingStepType } from "@/lib/api-types";
+import { format, isSameDay, isToday, isYesterday } from "date-fns";
 
 interface ChatMessagesProps {
   messages: Message[];
+  conversationCreatedAt: number;
   onRateMessage: (messageId: string, rating: number) => void;
   onCommentMessage: (messageId: string, comment: string) => void;
   isGenerating: boolean;
   thinkingSteps: (ThinkingStepType & { duration?: string })[];
 }
 
-export function ChatMessages({ messages, onRateMessage, onCommentMessage, isGenerating, thinkingSteps }: ChatMessagesProps) {
+export function ChatMessages({ messages, conversationCreatedAt, onRateMessage, onCommentMessage, isGenerating, thinkingSteps }: ChatMessagesProps) {
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
   const viewportRef = React.useRef<HTMLDivElement>(null);
+  let lastDate: Date | null = null;
 
   React.useEffect(() => {
     if (viewportRef.current) {
@@ -29,14 +33,39 @@ export function ChatMessages({ messages, onRateMessage, onCommentMessage, isGene
   return (
     <ScrollArea className="flex-1" ref={scrollAreaRef} viewportRef={viewportRef}>
       <div className="p-4 space-y-4">
-        {messages.map((message) => (
-          <ChatMessage 
-            key={message.id} 
-            message={message} 
-            onRateMessage={onRateMessage} 
-            onCommentMessage={onCommentMessage}
-          />
-        ))}
+        {messages.map((message, index) => {
+          const messageTimestamp = message.createdAt || conversationCreatedAt + index;
+          const currentDate = new Date(messageTimestamp);
+          let dateSeparator: React.ReactNode = null;
+
+          if (!lastDate || !isSameDay(currentDate, lastDate)) {
+            let dateLabel;
+            if (isToday(currentDate)) {
+              dateLabel = 'Today';
+            } else if (isYesterday(currentDate)) {
+              dateLabel = 'Yesterday';
+            } else {
+              dateLabel = format(currentDate, 'MMMM d, yyyy');
+            }
+            dateSeparator = (
+              <div className="text-center text-xs text-muted-foreground my-4">
+                {dateLabel}
+              </div>
+            );
+            lastDate = currentDate;
+          }
+
+          return (
+            <React.Fragment key={message.id}>
+              {dateSeparator}
+              <ChatMessage 
+                message={message} 
+                onRateMessage={onRateMessage} 
+                onCommentMessage={onCommentMessage}
+              />
+            </React.Fragment>
+          )
+        })}
         
         {isGenerating && thinkingSteps.length > 0 && (
           <div className="flex items-start gap-4">

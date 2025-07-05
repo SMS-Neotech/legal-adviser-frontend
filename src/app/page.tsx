@@ -147,8 +147,8 @@ export default function Home() {
         finalConversations = [...conversations];
     }
     
-    const userMessage: Message = { id: uuidv4(), role: 'user', content };
-    const assistantMessage: Message = { id: uuidv4(), role: "assistant", content: "" };
+    const userMessage: Message = { id: uuidv4(), role: 'user', content, createdAt: Date.now() };
+    const assistantMessage: Message = { id: uuidv4(), role: "assistant", content: "", createdAt: Date.now() };
     
     const targetConversationIndex = finalConversations.findIndex(c => c.id === conversationId);
     if(targetConversationIndex !== -1) {
@@ -333,6 +333,7 @@ export default function Home() {
           {(activeConversation && activeConversation.messages.length > 0) ? (
             <ChatMessages 
               messages={activeConversation.messages} 
+              conversationCreatedAt={activeConversation.createdAt}
               onRateMessage={handleRateMessage} 
               onCommentMessage={handleCommentMessage}
               isGenerating={isGenerating} 
