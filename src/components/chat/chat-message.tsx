@@ -49,7 +49,7 @@ export function ChatMessage({ message, onRateMessage, onCommentMessage }: ChatMe
         role === 'user' ? 'order-1' : 'order-2'
       )}>
         {role === 'user' ? (
-          <div className="rounded-lg bg-primary text-primary-foreground shadow-sm">
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
             <div className="p-4 space-y-4 break-words">
               <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
@@ -61,7 +61,7 @@ export function ChatMessage({ message, onRateMessage, onCommentMessage }: ChatMe
                           return <CodeBlock language={match[1]} code={String(children).replace(/\n$/, '')} />
                         }
                         return (
-                          <code className={cn("font-code bg-white/20 dark:bg-black/20 px-1 py-0.5 rounded-sm", className)} {...props}>
+                          <code className={cn("font-code bg-black/10 dark:bg-white/10 px-1 py-0.5 rounded-sm", className)} {...props}>
                               {children}
                           </code>
                         );
