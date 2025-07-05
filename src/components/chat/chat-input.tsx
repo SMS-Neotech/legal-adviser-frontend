@@ -1,16 +1,18 @@
+
 "use client";
 
 import * as React from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Send } from "lucide-react";
+import { Send, Square } from "lucide-react";
 
 interface ChatInputProps {
   onSendMessage: (content: string) => void;
   isGenerating: boolean;
+  onStopGenerating: () => void;
 }
 
-export function ChatInput({ onSendMessage, isGenerating }: ChatInputProps) {
+export function ChatInput({ onSendMessage, isGenerating, onStopGenerating }: ChatInputProps) {
   const [content, setContent] = React.useState("");
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
@@ -55,16 +57,29 @@ export function ChatInput({ onSendMessage, isGenerating }: ChatInputProps) {
           disabled={isGenerating}
           aria-label="Chat input"
         />
-        <Button
-          type="submit"
-          size="icon"
-          className="shrink-0 rounded-full"
-          onClick={handleSendMessage}
-          disabled={!content.trim() || isGenerating}
-          aria-label="Send message"
-        >
-          <Send className="h-4 w-4" />
-        </Button>
+        {isGenerating ? (
+          <Button
+            type="button"
+            size="icon"
+            variant="destructive"
+            className="shrink-0 rounded-full"
+            onClick={onStopGenerating}
+            aria-label="Stop generating"
+          >
+            <Square className="h-4 w-4" />
+          </Button>
+        ) : (
+          <Button
+            type="submit"
+            size="icon"
+            className="shrink-0 rounded-full"
+            onClick={handleSendMessage}
+            disabled={!content.trim() || isGenerating}
+            aria-label="Send message"
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        )}
       </div>
     </div>
   );

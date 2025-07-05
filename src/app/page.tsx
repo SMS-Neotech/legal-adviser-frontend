@@ -94,6 +94,7 @@ export default function Home() {
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [thinkingSteps, setThinkingSteps] = React.useState<ThinkingStep[]>([]);
   const [selectedModel, setSelectedModel] = React.useState('Gemini Flash');
+  const abortControllerRef = React.useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -185,6 +186,12 @@ export default function Home() {
     }
   };
 
+  const handleStopGenerating = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+  };
+
   const handleSendMessage = async (content: string) => {
     if (!content.trim() || !user) return;
 
@@ -192,22 +199,20 @@ export default function Home() {
     setThinkingSteps([]);
 
     const userMessage: Message = { id: uuidv4(), role: 'user', content, createdAt: Date.now(), rating: 0, comment: '' };
-    const assistantMessage: Message = { id: uuidv4(), role: "assistant", content: "", createdAt: Date.now(), rating: 0, comment: '' };
-
+    
     let conversationId = activeConversationId;
     let isNewChat = !conversationId;
-    let tempConversations = [...conversations];
-
+    
     if (isNewChat) {
       const newConversationId = uuidv4();
       const newConversation: Conversation = {
         id: newConversationId,
         title: content.substring(0, 30),
-        messages: [userMessage, assistantMessage],
+        messages: [userMessage],
         createdAt: Date.now(),
       };
       
-      tempConversations = [newConversation, ...conversations];
+      setConversations(prev => [newConversation, ...prev]);
       setActiveConversationId(newConversationId);
       conversationId = newConversationId;
 
@@ -220,21 +225,24 @@ export default function Home() {
         return;
       }
     } else {
-      tempConversations = conversations.map(c => 
-        c.id === conversationId ? { ...c, messages: [...c.messages, userMessage, assistantMessage] } : c
-      );
+      setConversations(prev => prev.map(c => 
+        c.id === conversationId ? { ...c, messages: [...c.messages, userMessage] } : c
+      ));
     }
-
-    setConversations(tempConversations);
     
     let answeringStarted = false;
     let finalAssistantContent = "";
+    const assistantMessageId = uuidv4();
+    let assistantMessageAdded = false;
+
+    abortControllerRef.current = new AbortController();
 
     try {
       const response = await fetch('http://localhost:8000/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ queries: [content], model: selectedModel }),
+        signal: abortControllerRef.current.signal,
       });
 
       if (!response.ok) {
@@ -270,15 +278,23 @@ export default function Home() {
                   answeringStarted = true;
                 }
                 finalAssistantContent += data.message;
+                
                 setConversations(prev => {
                   return prev.map(c => {
                     if (c.id !== conversationId) return c;
-                    const newMessages = [...c.messages];
-                    const lastMessage = newMessages[newMessages.length - 1];
-                    if (lastMessage && lastMessage.role === 'assistant') {
-                      lastMessage.content = finalAssistantContent;
+                    
+                    if (!assistantMessageAdded) {
+                      assistantMessageAdded = true;
+                      const assistantMessage: Message = { id: assistantMessageId, role: "assistant", content: finalAssistantContent, createdAt: Date.now(), rating: 0, comment: '' };
+                      return { ...c, messages: [...c.messages, assistantMessage] };
+                    } else {
+                       const newMessages = [...c.messages];
+                       const lastMessage = newMessages[newMessages.length - 1];
+                       if (lastMessage && lastMessage.role === 'assistant') {
+                         lastMessage.content = finalAssistantContent;
+                       }
+                       return { ...c, messages: newMessages };
                     }
-                    return { ...c, messages: newMessages };
                   });
                 });
               } else if (data.step && !answeringStarted) {
@@ -304,36 +320,32 @@ export default function Home() {
           }
         }
       }
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "An error occurred.",
-        description: "Failed to get a response. Please try again.",
-      });
-      setConversations(prev => prev.map(c => {
-        if (c.id === conversationId) {
-          const newMessages = c.messages.filter(m => m.id !== assistantMessage.id);
-          return {...c, messages: newMessages};
-        }
-        return c;
-      }));
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.log('Fetch aborted by user.');
+      } else {
+        toast({
+          variant: "destructive",
+          title: "An error occurred.",
+          description: "Failed to get a response. Please try again.",
+        });
+      }
     } finally {
       setIsGenerating(false);
       setThinkingSteps([]);
+      abortControllerRef.current = null;
       
-      if (conversationId && user) {
-        const finalConversation = conversations.find(c => c.id === conversationId) || tempConversations.find(c => c.id === conversationId);
-        if (finalConversation) {
-          try {
-            const finalMessages = finalConversation.messages.map(m => m.id === assistantMessage.id ? { ...m, content: finalAssistantContent } : m);
-            const messagesToSave = finalAssistantContent ? finalMessages : finalMessages.filter(m => m.id !== assistantMessage.id);
-            await updateConversation(user.uid, conversationId, { messages: messagesToSave });
-          } catch (error) {
-            console.error("Failed to save final conversation state:", error);
-            toast({ variant: "destructive", title: "Sync Error", description: "Failed to save the conversation." });
-          }
+      setConversations(currentConversations => {
+        const conversationToSave = currentConversations.find(c => c.id === conversationId);
+        if (user && conversationToSave && conversationToSave.messages[conversationToSave.messages.length - 1].role === 'assistant') {
+            updateConversation(user.uid, conversationToSave.id, { messages: conversationToSave.messages })
+                .catch(err => {
+                    console.error("Failed to save final conversation state:", err);
+                    toast({ variant: "destructive", title: "Sync Error", description: "Failed to save the conversation." });
+                });
         }
-      }
+        return currentConversations;
+      });
     }
   };
 
@@ -482,7 +494,7 @@ export default function Home() {
           ) : (
             <WelcomeScreen onSamplePromptClick={handleSendMessage} />
           )}
-          <ChatInput onSendMessage={handleSendMessage} isGenerating={isGenerating} />
+          <ChatInput onSendMessage={handleSendMessage} isGenerating={isGenerating} onStopGenerating={handleStopGenerating} />
           <footer className="text-center text-xs text-muted-foreground p-2">
             ⚠️ Disclaimer: Responses may be inaccurate. Verify with official legal sources.
           </footer>

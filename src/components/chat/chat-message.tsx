@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -40,7 +41,7 @@ export function ChatMessage({ message, onRateMessage, onCommentMessage }: ChatMe
         <div className="flex flex-col items-end">
             <span className="text-xs text-muted-foreground mb-1 mr-12">{format(new Date(createdAt), 'p')}</span>
             <div className="flex items-start gap-4">
-                <div className="group max-w-prose rounded-lg border bg-card text-card-foreground shadow-sm">
+                <div className="group max-w-prose rounded-lg rounded-br-none border bg-card text-card-foreground shadow-sm">
                     <div className="p-4 space-y-4 break-words text-xs">
                     <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
@@ -82,7 +83,7 @@ export function ChatMessage({ message, onRateMessage, onCommentMessage }: ChatMe
       <div className={cn(
         "group max-w-prose"
       )}>
-        <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+        <div className="rounded-lg rounded-bl-none border bg-card text-card-foreground shadow-sm">
             <div className="p-4 space-y-4 break-words text-xs">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}

@@ -87,7 +87,7 @@ export function ChatMessages({ messages, conversationCreatedAt, onRateMessage, o
           </div>
         )}
 
-        {isGenerating && thinkingSteps.length === 0 && messages[messages.length-1]?.role === 'assistant' && messages[messages.length-1]?.content === '' && (
+        {isGenerating && thinkingSteps.length === 0 && messages[messages.length-1]?.role === 'user' && (
            <div className="flex items-start gap-4 p-4">
             <Gavel className="w-8 h-8 text-muted-foreground" />
              <div className="flex items-center gap-2 pt-2">
