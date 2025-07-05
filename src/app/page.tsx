@@ -310,10 +310,11 @@ export default function Home() {
                     : c
                   ));
                 } else {
-                  setConversations(prev => prev.map(c => c.id === conversationId
-                    ? { ...c, messages: c.messages.map(m => m.id === assistantMessageId ? newAssistantMessage : m) }
-                    : c
-                  ));
+                   setConversations(prev => prev.map(c => {
+                    if (c.id !== conversationId) return c;
+                    const updatedMessages = c.messages.map(m => m.id === assistantMessageId ? newAssistantMessage : m);
+                    return { ...c, messages: updatedMessages };
+                  }));
                 }
               } else if (data.step && !answeringStarted) { // This is a thinking step
                 setThinkingSteps(prev => {
@@ -485,6 +486,9 @@ export default function Home() {
           />
         </SidebarContent>
         <SidebarFooter className="items-center group-data-[collapsible=icon]:flex-col">
+          <p className="text-xs text-muted-foreground p-2 text-center group-data-[collapsible=icon]:hidden">
+            © 2025 SMSNeotech
+          </p>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="flex flex-col h-svh">
