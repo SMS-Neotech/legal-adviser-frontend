@@ -2,6 +2,8 @@
 "use client";
 
 import * as React from "react";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
 import {
   Sidebar,
@@ -23,6 +25,11 @@ import { Logo } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 import { type ThinkingStep as ThinkingStepApiType } from "@/lib/api-types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/components/auth-provider";
+import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { LogOut, User } from "lucide-react";
 
 type ThinkingStep = ThinkingStepApiType & {
   startTime?: number;
@@ -78,6 +85,8 @@ function WelcomeScreen({ onSamplePromptClick }: { onSamplePromptClick: (prompt: 
 
 
 export default function Home() {
+  const { user, loading, logout } = useAuth();
+  const router = useRouter();
   const { toast } = useToast();
   const [conversations, setConversations] = useLocalStorage<Conversation[]>("conversations", []);
   const [activeConversationId, setActiveConversationId] = useLocalStorage<string | null>(
@@ -87,6 +96,12 @@ export default function Home() {
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [thinkingSteps, setThinkingSteps] = React.useState<ThinkingStep[]>([]);
   const [selectedModel, setSelectedModel] = React.useState('Gemini Flash');
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
 
   const activeConversation = React.useMemo(() => {
     return conversations.find((c) => c.id === activeConversationId) || null;
@@ -284,6 +299,17 @@ export default function Home() {
     }
   }, [conversations, activeConversationId, setActiveConversationId]);
 
+  if (loading || !user) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Logo className="size-12 animate-pulse" />
+          <p className="text-muted-foreground">Loading your experience...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <SidebarProvider>
       <Sidebar side="left" collapsible="icon" className="group" variant="sidebar">
@@ -326,7 +352,35 @@ export default function Home() {
                     </SelectContent>
                 </Select>
             </div>
-            <ThemeToggle />
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8 border">
+                      {user.photoURL ? (
+                        <AvatarImage src={user.photoURL} alt={user.displayName || 'User avatar'} />
+                      ) : (
+                        <AvatarFallback><User /></AvatarFallback>
+                      )}
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-xs font-medium leading-none">{user.displayName}</p>
+                      <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={logout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
         </header>
 
         <div className="flex-1 flex flex-col overflow-hidden">
