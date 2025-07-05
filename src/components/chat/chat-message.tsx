@@ -60,15 +60,15 @@ export function ChatMessage({ message, isLastMessage, isGenerating, onRateMessag
 
   return (
     <div className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}>
-        <div className={cn("flex gap-4", isUser ? "flex-row-reverse" : "flex-row")}>
-            <Avatar className="w-8 h-8 border mt-5">
+        <div className={cn("flex gap-4", isUser ? "flex-row-reverse" : "flex-row items-start")}>
+            <Avatar className="w-8 h-8 border">
                 <AvatarFallback>{isUser ? <User /> : <Gavel />}</AvatarFallback>
             </Avatar>
-            <div className={cn("group max-w-prose flex flex-col", isUser ? "items-end" : "items-start", !isUser && "mt-2")}>
+            <div className={cn("group max-w-prose flex flex-col", isUser ? "items-end" : "items-start mt-5")}>
                 <div className={cn("flex items-center", isUser ? "flex-row-reverse" : "flex-row")}>
                     <div className={cn(
                         "relative rounded-lg border bg-card text-card-foreground shadow-sm",
-                        isUser ? "rounded-br-none" : "rounded-tl-none"
+                        isUser ? "rounded-br-none" : "rounded-bl-none"
                     )}>
                         <div className="p-4 space-y-4 break-words text-xs">
                         <ReactMarkdown
