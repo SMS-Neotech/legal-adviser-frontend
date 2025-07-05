@@ -110,8 +110,9 @@ export default function Home() {
           setConversations(userConversations);
           
           const lastActiveId = sessionStorage.getItem('activeConversationId');
-          // Only restore active session if the page wasn't just reloaded
-          if (lastActiveId && userConversations.some(c => c.id === lastActiveId) && performance.navigation.type !== performance.navigation.TYPE_RELOAD) {
+          const isPageReload = performance.navigation.type === performance.navigation.TYPE_RELOAD;
+          
+          if (lastActiveId && !isPageReload && userConversations.some(c => c.id === lastActiveId)) {
             setActiveConversationId(lastActiveId);
           } else {
             setActiveConversationId(null);
@@ -128,7 +129,7 @@ export default function Home() {
       fetchConversations();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, loading, toast]);
+  }, [user, loading]);
   
   useEffect(() => {
     if (activeConversationId) {
@@ -283,7 +284,7 @@ export default function Home() {
             try {
               const data = JSON.parse(dataStr);
               
-              if (data.step === 'Answering' && data.message) {
+              if (data.step === 'Answering' && typeof data.message === 'string') {
                 if (!answeringStarted) {
                   setThinkingSteps([]);
                   answeringStarted = true;
@@ -299,12 +300,13 @@ export default function Home() {
                       const assistantMessage: Message = { id: assistantMessageId, role: "assistant", content: finalAssistantContent, createdAt: Date.now(), rating: 0, comment: '' };
                       return { ...c, messages: [...c.messages, assistantMessage] };
                     } else {
-                       const newMessages = [...c.messages];
-                       const lastMessage = newMessages[newMessages.length - 1];
-                       if (lastMessage && lastMessage.role === 'assistant') {
-                         lastMessage.content = finalAssistantContent;
-                       }
-                       return { ...c, messages: newMessages };
+                       const updatedMessages = c.messages.map((msg, index) => {
+                         if (index === c.messages.length - 1 && msg.role === 'assistant') {
+                           return { ...msg, content: finalAssistantContent };
+                         }
+                         return msg;
+                       });
+                       return { ...c, messages: updatedMessages };
                     }
                   });
                 });
@@ -348,7 +350,7 @@ export default function Home() {
       
       setConversations(currentConversations => {
         const conversationToSave = currentConversations.find(c => c.id === conversationId);
-        if (user && conversationToSave && conversationToSave.messages[conversationToSave.messages.length - 1].role === 'assistant') {
+        if (user && conversationToSave && conversationToSave.messages.length > 0 && conversationToSave.messages[conversationToSave.messages.length - 1].role === 'assistant') {
             updateConversation(user.uid, conversationToSave.id, { messages: conversationToSave.messages })
                 .catch(err => {
                     console.error("Failed to save final conversation state:", err);
