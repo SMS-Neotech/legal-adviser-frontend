@@ -292,13 +292,6 @@ export default function Home() {
     ));
   };
 
-  React.useEffect(() => {
-    const validConversations = conversations.filter(c => c.messages.length > 0);
-    if (!activeConversationId && validConversations.length > 0) {
-      setActiveConversationId(validConversations[0].id);
-    }
-  }, [conversations, activeConversationId, setActiveConversationId]);
-
   if (loading || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
