@@ -2,7 +2,7 @@ export type Message = {
   id: string;
   role: 'user' | 'assistant';
   content: string;
-  rating?: 'up' | 'down';
+  rating?: boolean;
 };
 
 export type Conversation = {

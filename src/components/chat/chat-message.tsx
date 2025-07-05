@@ -2,7 +2,7 @@
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ThumbsUp, ThumbsDown, Bot, User } from "lucide-react";
+import { Bot, User, Star } from "lucide-react";
 import { type Message } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { CodeBlock } from "@/components/code-block";
@@ -11,7 +11,7 @@ import remarkGfm from "remark-gfm";
 
 interface ChatMessageProps {
   message: Message;
-  onRateMessage: (messageId: string, rating: 'up' | 'down') => void;
+  onRateMessage: (messageId: string) => void;
 }
 
 export function ChatMessage({ message, onRateMessage }: ChatMessageProps) {
@@ -28,11 +28,11 @@ export function ChatMessage({ message, onRateMessage }: ChatMessageProps) {
         </Avatar>
       )}
       <div className={cn(
-        "group max-w-prose break-words",
+        "group",
         role === 'user' ? 'order-1' : 'order-2'
       )}>
         <div className={cn(
-          "space-y-4",
+          "space-y-4 max-w-prose break-words",
           role === 'user' ? 'pt-1.5' : 'px-4 py-3 rounded-lg bg-muted'
         )}>
            <ReactMarkdown
@@ -60,18 +60,11 @@ export function ChatMessage({ message, onRateMessage }: ChatMessageProps) {
             <Button
               variant="ghost"
               size="icon"
-              className={cn("h-7 w-7", rating === 'up' && 'bg-accent text-accent-foreground')}
-              onClick={() => onRateMessage(message.id, 'up')}
+              className={cn("h-7 w-7", rating && 'text-accent fill-accent')}
+              onClick={() => onRateMessage(message.id)}
+              aria-label="Rate message"
             >
-              <ThumbsUp className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn("h-7 w-7", rating === 'down' && 'bg-destructive/20 text-destructive')}
-              onClick={() => onRateMessage(message.id, 'down')}
-            >
-              <ThumbsDown className="h-4 w-4" />
+              <Star className="h-4 w-4" />
             </Button>
           </div>
         )}

@@ -246,10 +246,10 @@ export default function Home() {
   };
 
 
-  const handleRateMessage = (messageId: string, rating: 'up' | 'down') => {
+  const handleRateMessage = (messageId: string) => {
     if (!activeConversation) return;
     const updatedMessages = activeConversation.messages.map(m =>
-      m.id === messageId ? { ...m, rating } : m
+      m.id === messageId ? { ...m, rating: !m.rating } : m
     );
     const updatedConversation = { ...activeConversation, messages: updatedMessages };
     setConversations(conversations.map((c) =>
@@ -268,14 +268,14 @@ export default function Home() {
     <SidebarProvider>
       <Sidebar side="left" collapsible="icon" className="group" variant="sidebar">
         <SidebarHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between group-data-[collapsible=icon]:justify-center">
             <div className="flex items-center gap-2">
               <Logo className="size-6 text-primary" aria-label="Legal Advisor Logo" />
               <h2 className="text-lg font-semibold group-data-[collapsible=icon]:hidden">
                 Legal Advisor
               </h2>
             </div>
-            <SidebarTrigger className="hidden md:flex" />
+            <SidebarTrigger className="hidden md:flex group-data-[collapsible=icon]:hidden" />
           </div>
         </SidebarHeader>
         <SidebarContent>
