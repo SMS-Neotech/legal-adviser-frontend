@@ -11,6 +11,7 @@ import { type ThinkingStep as ThinkingStepType } from "@/lib/api-types";
 import { format, isSameDay, isToday, isYesterday } from "date-fns";
 import { Button } from "@/components/ui/button";
 import type { User } from 'firebase/auth';
+import { useTranslation } from "../language-provider";
 
 interface ChatMessagesProps {
   user: User | null;
@@ -30,6 +31,7 @@ export function ChatMessages({ user, messages, conversationCreatedAt, onRateMess
   const viewportRef = React.useRef<HTMLDivElement>(null);
   const prevConversationId = React.useRef<string | null>(null);
   const prevMessageLength = React.useRef(0);
+  const { t, dateLocale } = useTranslation();
   let lastDate: Date | null = null;
 
   React.useEffect(() => {
@@ -61,11 +63,11 @@ export function ChatMessages({ user, messages, conversationCreatedAt, onRateMess
           if (!lastDate || !isSameDay(currentDate, lastDate)) {
             let dateLabel;
             if (isToday(currentDate)) {
-              dateLabel = 'Today';
+              dateLabel = t('today');
             } else if (isYesterday(currentDate)) {
-              dateLabel = 'Yesterday';
+              dateLabel = t('yesterday');
             } else {
-              dateLabel = format(currentDate, 'MMMM d, yyyy');
+              dateLabel = format(currentDate, 'MMMM d, yyyy', { locale: dateLocale });
             }
             dateSeparator = (
               <div className="text-center text-xs text-muted-foreground my-4">
@@ -120,7 +122,7 @@ export function ChatMessages({ user, messages, conversationCreatedAt, onRateMess
           <div className="flex justify-center py-4">
             <Button variant="outline" size="sm" onClick={onRegenerateResponse}>
               <RefreshCw className="mr-2 h-4 w-4" />
-              Regenerate response
+              {t('regenerateResponse')}
             </Button>
           </div>
         )}

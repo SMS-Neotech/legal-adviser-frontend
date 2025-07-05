@@ -30,6 +30,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LogOut, User } from "lucide-react";
 import { getConversations, addConversationWithId, updateConversation, deleteConversation } from "@/lib/firestore";
+import { useTranslation } from "@/components/language-provider";
+import { LanguageToggle } from "@/components/language-toggle";
 
 
 type ThinkingStep = ThinkingStepApiType & {
@@ -50,33 +52,34 @@ function SamplePromptCard({ icon, title, subtitle, onClick }: { icon: string, ti
 }
 
 function WelcomeScreen({ onSamplePromptClick }: { onSamplePromptClick: (prompt: string) => void }) {
+  const { t } = useTranslation();
   return (
     <div className="flex-1 flex flex-col items-center justify-center gap-4 p-4 text-center">
       <Logo className="size-16 text-primary" />
-      <h1 className="text-lg font-bold">How can I help you today?</h1>
+      <h1 className="text-lg font-bold">{t('howCanIHelp')}</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 w-full max-w-3xl">
           <SamplePromptCard
               icon="📝"
-              title="Draft a rental agreement"
-              subtitle="for a residential property."
+              title={t('samplePrompt1Title')}
+              subtitle={t('samplePrompt1Subtitle')}
               onClick={() => onSamplePromptClick("Draft a simple rental agreement (ghar-bahal karar) for a residential property in Kathmandu, Nepal.")}
           />
           <SamplePromptCard
               icon="🏢"
-              title="Register a company"
-              subtitle="and list the required documents."
+              title={t('samplePrompt2Title')}
+              subtitle={t('samplePrompt2Subtitle')}
               onClick={() => onSamplePromptClick("What is the process and what are the required documents for registering a private limited company in Nepal?")}
           />
           <SamplePromptCard
               icon="📜"
-              title="Explain Nepal's Labor Act"
-              subtitle="regarding employee rights."
+              title={t('samplePrompt3Title')}
+              subtitle={t('samplePrompt3Subtitle')}
               onClick={() => onSamplePromptClick("Summarize the key provisions of the Nepal Labor Act, 2074 regarding employee rights.")}
           />
           <SamplePromptCard
               icon="🇳🇵"
-              title="Translate a legal phrase"
-              subtitle="from English to Nepali."
+              title={t('samplePrompt4Title')}
+              subtitle={t('samplePrompt4Subtitle')}
               onClick={() => onSamplePromptClick("Translate the following legal phrase to Nepali: 'This agreement shall be governed by and construed in accordance with the laws of Nepal.'")}
           />
       </div>
@@ -89,6 +92,7 @@ export default function Home() {
   const { user, loading, logout } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -303,19 +307,20 @@ export default function Home() {
                   comment: '' 
                 };
 
-                if (!assistantMessageAdded) {
-                  assistantMessageAdded = true;
-                  setConversations(prev => prev.map(c => c.id === conversationId
-                    ? { ...c, messages: [...c.messages, newAssistantMessage] }
-                    : c
-                  ));
-                } else {
-                   setConversations(prev => prev.map(c => {
+                setConversations(prev => prev.map(c => {
                     if (c.id !== conversationId) return c;
-                    const updatedMessages = c.messages.map(m => m.id === assistantMessageId ? newAssistantMessage : m);
-                    return { ...c, messages: updatedMessages };
-                  }));
-                }
+                    
+                    if (!assistantMessageAdded) {
+                      assistantMessageAdded = true;
+                      return { ...c, messages: [...c.messages, newAssistantMessage] };
+                    } else {
+                      const updatedMessages = c.messages.map(m => 
+                        m.id === assistantMessageId ? newAssistantMessage : m
+                      );
+                      return { ...c, messages: updatedMessages };
+                    }
+                  })
+                );
               } else if (data.step && !answeringStarted) { // This is a thinking step
                 setThinkingSteps(prev => {
                   const existingStepIndex = prev.findIndex(s => s.step === data.step);
@@ -455,7 +460,7 @@ export default function Home() {
       <div className="flex h-screen w-full items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <Logo className="size-12 animate-pulse" />
-          <p className="text-muted-foreground">Loading your experience...</p>
+          <p className="text-muted-foreground">{t('loadingExperience')}</p>
         </div>
       </div>
     );
@@ -469,7 +474,7 @@ export default function Home() {
             <div className="flex items-center gap-2">
               <Logo className="size-6 text-primary" aria-label="Legal Advisor Logo" />
               <h2 className="text-lg font-semibold group-data-[collapsible=icon]:hidden">
-                Legal Advisor
+                {t('legalAdvisor')}
               </h2>
             </div>
             <SidebarTrigger className="hidden md:flex" />
@@ -487,7 +492,7 @@ export default function Home() {
         </SidebarContent>
         <SidebarFooter className="items-center group-data-[collapsible=icon]:flex-col">
           <p className="text-xs text-muted-foreground p-2 text-center group-data-[collapsible=icon]:hidden">
-            © 2025 SMSNeotech
+            {t('copyright')}
           </p>
         </SidebarFooter>
       </Sidebar>
@@ -497,7 +502,7 @@ export default function Home() {
                 <SidebarTrigger className="md:hidden" />
                 <Select value={selectedModel} onValueChange={setSelectedModel}>
                     <SelectTrigger className="w-auto md:w-[180px] bg-transparent border-none focus:ring-0 shadow-none text-xs font-semibold">
-                        <SelectValue placeholder="Select a model" />
+                        <SelectValue placeholder={t('selectModel')} />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="ChatGPT">ChatGPT</SelectItem>
@@ -507,6 +512,7 @@ export default function Home() {
                 </Select>
             </div>
             <div className="flex items-center gap-2">
+              <LanguageToggle />
               <ThemeToggle />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -530,7 +536,7 @@ export default function Home() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={logout}>
                     <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
+                    <span>{t('logOut')}</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -563,7 +569,7 @@ export default function Home() {
             onStopGenerating={handleStopGenerating} 
           />
           <footer className="text-center text-xs text-muted-foreground p-2">
-            ⚠️ Disclaimer: Responses may be inaccurate. Verify with official legal sources.
+            {t('disclaimer')}
           </footer>
         </div>
       </SidebarInset>

@@ -14,6 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import type { User as FirebaseAuthUser } from 'firebase/auth';
+import { useTranslation } from "../language-provider";
 
 interface ChatMessageProps {
   user: FirebaseAuthUser | null;
@@ -27,15 +28,16 @@ interface ChatMessageProps {
 }
 
 function ChatMessageActions({ onEdit, onRegenerate }: { onEdit: () => void, onRegenerate: () => void }) {
+    const { t } = useTranslation();
     return (
         <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={onEdit}>
                 <Pencil className="h-4 w-4" />
-                <span className="sr-only">Edit message</span>
+                <span className="sr-only">{t('editMessage')}</span>
             </Button>
             <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={onRegenerate}>
                 <RefreshCw className="h-4 w-4" />
-                <span className="sr-only">Regenerate response</span>
+                <span className="sr-only">{t('regenerateResponse')}</span>
             </Button>
         </div>
     );
@@ -44,6 +46,7 @@ function ChatMessageActions({ onEdit, onRegenerate }: { onEdit: () => void, onRe
 
 export function ChatMessage({ user, message, isLastMessage, isGenerating, onRateMessage, onCommentMessage, onEditMessage, onRegenerateResponse }: ChatMessageProps) {
   const { role, content, rating, comment, createdAt } = message;
+  const { t, dateLocale } = useTranslation();
   const [hoverRating, setHoverRating] = React.useState(0);
   const [commentText, setCommentText] = React.useState(comment || "");
   const [isPopoverOpen, setIsPopoverOpen] = React.useState(false);
@@ -112,32 +115,32 @@ export function ChatMessage({ user, message, isLastMessage, isGenerating, onRate
                                         className={cn("h-7 w-7", (hoverRating >= star || (!hoverRating && rating && rating >= star)) ? 'text-primary' : 'text-muted-foreground')}
                                         onMouseEnter={() => setHoverRating(star)}
                                         onClick={() => onRateMessage(message.id, rating === star ? 0 : star)}
-                                        aria-label={`Rate ${star} star`}
+                                        aria-label={t('rateStar', { star })}
                                     >
                                         <Star className="h-4 w-4" fill="currentColor" />
                                     </Button>
                                     ))}
                                     <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
                                     <PopoverTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" aria-label={comment ? "View/Edit comment" : "Add comment"}>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" aria-label={comment ? t('viewEditComment') : t('addComment')}>
                                             {comment ? <MessageSquareText className="h-4 w-4 text-primary" /> : <MessageSquarePlus className="h-4 w-4" />}
                                         </Button>
                                     </PopoverTrigger>
                                     <PopoverContent className="w-80">
                                         <div className="grid gap-4">
                                             <div className="space-y-2">
-                                                <h4 className="font-medium leading-none">Comment</h4>
-                                                <p className="text-xs text-muted-foreground">Add or edit the comment for this response.</p>
+                                                <h4 className="font-medium leading-none">{t('comment')}</h4>
+                                                <p className="text-xs text-muted-foreground">{t('addEditCommentDescription')}</p>
                                             </div>
                                             <div className="grid gap-2">
-                                                <Textarea value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Your comment..." rows={3} />
-                                                <Button onClick={handleSaveComment}>Save</Button>
+                                                <Textarea value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder={t('yourCommentPlaceholder')} rows={3} />
+                                                <Button onClick={handleSaveComment}>{t('save')}</Button>
                                             </div>
                                         </div>
                                     </PopoverContent>
                                     </Popover>
                                 </div>
-                                <span className="text-xs text-muted-foreground">{format(new Date(createdAt), 'p')}</span>
+                                <span className="text-xs text-muted-foreground">{format(new Date(createdAt), 'p', { locale: dateLocale })}</span>
                             </div>
                         )}
                     </div>
@@ -150,7 +153,7 @@ export function ChatMessage({ user, message, isLastMessage, isGenerating, onRate
                         />
                     </div>
                 )}
-                {isUser && !showUserActions && <span className="text-xs text-muted-foreground mt-1">{format(new Date(createdAt), 'p')}</span>}
+                {isUser && !showUserActions && <span className="text-xs text-muted-foreground mt-1">{format(new Date(createdAt), 'p', { locale: dateLocale })}</span>}
             </div>
         </div>
     </div>

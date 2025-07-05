@@ -5,6 +5,7 @@ import * as React from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Send, Square } from "lucide-react";
+import { useTranslation } from "../language-provider";
 
 interface ChatInputProps {
   value: string;
@@ -16,7 +17,8 @@ interface ChatInputProps {
 
 export const ChatInput = React.forwardRef<HTMLTextAreaElement, ChatInputProps>(
   ({ value, onValueChange, onSendMessage, isGenerating, onStopGenerating }, ref) => {
-    
+    const { t } = useTranslation();
+
     const handleSendMessageClick = () => {
       if (value.trim() && !isGenerating) {
         onSendMessage(value.trim());
@@ -48,7 +50,7 @@ export const ChatInput = React.forwardRef<HTMLTextAreaElement, ChatInputProps>(
             value={value}
             onChange={(e) => onValueChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type your message here... (Enter to send, Alt+Enter for new line)"
+            placeholder={t('typeYourMessage')}
             className="flex-1 py-2 resize-none max-h-48 bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0"
             rows={1}
             disabled={isGenerating}
@@ -61,7 +63,7 @@ export const ChatInput = React.forwardRef<HTMLTextAreaElement, ChatInputProps>(
               variant="destructive"
               className="shrink-0 rounded-full"
               onClick={onStopGenerating}
-              aria-label="Stop generating"
+              aria-label={t('stopGenerating')}
             >
               <Square className="h-4 w-4" />
             </Button>
@@ -72,7 +74,7 @@ export const ChatInput = React.forwardRef<HTMLTextAreaElement, ChatInputProps>(
               className="shrink-0 rounded-full"
               onClick={handleSendMessageClick}
               disabled={!value.trim() || isGenerating}
-              aria-label="Send message"
+              aria-label={t('sendMessage')}
             >
               <Send className="h-4 w-4" />
             </Button>

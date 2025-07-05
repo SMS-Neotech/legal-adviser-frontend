@@ -33,6 +33,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "../language-provider";
 
 interface ConversationListProps {
   conversations: Conversation[];
@@ -54,6 +55,7 @@ export function ConversationList({
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [renameValue, setRenameValue] = React.useState("");
   const [searchTerm, setSearchTerm] = React.useState("");
+  const { t } = useTranslation();
 
   const handleEdit = (conversation: Conversation) => {
     setEditingId(conversation.id);
@@ -88,14 +90,14 @@ export function ConversationList({
           onClick={onNewConversation}
         >
           <PlusCircle className="size-4" />
-          <span className="group-data-[collapsible=icon]:hidden">New Chat</span>
+          <span className="group-data-[collapsible=icon]:hidden">{t('newChat')}</span>
         </Button>
       </div>
       <div className="px-2 pb-2">
         <div className="relative group-data-[collapsible=icon]:hidden">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search chats..."
+            placeholder={t('searchChats')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-9"
@@ -105,7 +107,7 @@ export function ConversationList({
       <SidebarSeparator />
       {filteredConversations.length > 0 && (
         <div className="px-2 my-2 text-xs font-semibold tracking-wider uppercase text-muted-foreground group-data-[collapsible=icon]:hidden">
-            Chat History
+            {t('chatHistory')}
         </div>
       )}
       <SidebarMenu className="flex-1 p-2 pt-0">
@@ -162,15 +164,15 @@ export function ConversationList({
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                      <AlertDialogTitle>{t('areYouSure')}</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This will permanently delete the conversation titled "{conversation.title}".
+                        {t('deleteConversationConfirmation', { title: conversation.title })}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
                       <AlertDialogAction onClick={() => onDeleteConversation(conversation.id)}>
-                        Delete
+                        {t('delete')}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>

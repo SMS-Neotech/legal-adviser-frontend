@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
+import { useTranslation } from '@/components/language-provider';
 
 function GoogleIcon() {
     return (
@@ -23,6 +24,7 @@ function GoogleIcon() {
 export default function LoginPage() {
   const { signInWithGoogle, user, loading, isFirebaseConfigured } = useAuth();
   const router = useRouter();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!loading && user) {
@@ -35,7 +37,7 @@ export default function LoginPage() {
         <div className="flex h-screen w-full items-center justify-center">
             <div className="flex flex-col items-center gap-4">
                 <Logo className="size-12 animate-pulse" />
-                <p className="text-muted-foreground">Loading...</p>
+                <p className="text-muted-foreground">{t('loading')}</p>
             </div>
         </div>
     );
@@ -48,22 +50,22 @@ export default function LoginPage() {
           <div className="mx-auto mb-4">
             <Logo className="size-16 text-primary" />
           </div>
-          <CardTitle className="text-xl">Welcome to Legal Advisor</CardTitle>
-          <CardDescription>Sign in to continue to your personal legal assistant.</CardDescription>
+          <CardTitle className="text-xl">{t('welcomeToLegalAdvisor')}</CardTitle>
+          <CardDescription>{t('signInToContinue')}</CardDescription>
         </CardHeader>
         <CardContent>
           {!isFirebaseConfigured ? (
             <Alert variant="destructive">
               <Terminal className="h-4 w-4" />
-              <AlertTitle>Firebase Not Configured</AlertTitle>
+              <AlertTitle>{t('firebaseNotConfigured')}</AlertTitle>
               <AlertDescription>
-                Please add your Firebase credentials to the <code>.env</code> file to enable authentication.
+                {t('firebaseNotConfiguredMessage')}
               </AlertDescription>
             </Alert>
           ) : (
             <Button onClick={signInWithGoogle} className="w-full" variant="outline">
               <GoogleIcon />
-              Sign in with Google
+              {t('signInWithGoogle')}
             </Button>
           )}
         </CardContent>
