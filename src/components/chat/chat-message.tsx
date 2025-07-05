@@ -71,11 +71,6 @@ export function ChatMessage({ message, onRateMessage, onCommentMessage }: ChatMe
                   {content}
               </ReactMarkdown>
             </div>
-            <div className="flex justify-end border-t px-4 py-2">
-                <span className="text-xs text-muted-foreground">
-                    {format(new Date(createdAt), 'p')}
-                </span>
-            </div>
           </div>
         ) : (
           <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
@@ -167,9 +162,12 @@ export function ChatMessage({ message, onRateMessage, onCommentMessage }: ChatMe
         )}
       </div>
       {role === 'user' && (
-        <Avatar className="w-8 h-8 order-2">
-          <AvatarFallback><User /></AvatarFallback>
-        </Avatar>
+        <div className="flex items-end gap-2 order-2">
+            <span className="text-xs text-muted-foreground">{format(new Date(createdAt), 'p')}</span>
+            <Avatar className="w-8 h-8">
+              <AvatarFallback><User /></AvatarFallback>
+            </Avatar>
+        </div>
       )}
     </div>
   );
