@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Logo } from '@/components/icons';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Terminal } from 'lucide-react';
 
 function GoogleIcon() {
     return (
@@ -19,7 +21,7 @@ function GoogleIcon() {
 }
 
 export default function LoginPage() {
-  const { signInWithGoogle, user, loading } = useAuth();
+  const { signInWithGoogle, user, loading, isFirebaseConfigured } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -50,10 +52,20 @@ export default function LoginPage() {
           <CardDescription>Sign in to continue to your personal legal assistant.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={signInWithGoogle} className="w-full" variant="outline">
-            <GoogleIcon />
-            Sign in with Google
-          </Button>
+          {!isFirebaseConfigured ? (
+            <Alert variant="destructive">
+              <Terminal className="h-4 w-4" />
+              <AlertTitle>Firebase Not Configured</AlertTitle>
+              <AlertDescription>
+                Please add your Firebase credentials to the <code>.env</code> file to enable authentication.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <Button onClick={signInWithGoogle} className="w-full" variant="outline">
+              <GoogleIcon />
+              Sign in with Google
+            </Button>
+          )}
         </CardContent>
       </Card>
     </div>
