@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Bot, User, Star } from "lucide-react";
@@ -11,11 +12,12 @@ import remarkGfm from "remark-gfm";
 
 interface ChatMessageProps {
   message: Message;
-  onRateMessage: (messageId: string) => void;
+  onRateMessage: (messageId: string, rating: number) => void;
 }
 
 export function ChatMessage({ message, onRateMessage }: ChatMessageProps) {
   const { role, content, rating } = message;
+  const [hoverRating, setHoverRating] = React.useState(0);
 
   return (
     <div className={cn(
@@ -28,11 +30,11 @@ export function ChatMessage({ message, onRateMessage }: ChatMessageProps) {
         </Avatar>
       )}
       <div className={cn(
-        "group",
+        "group max-w-prose",
         role === 'user' ? 'order-1' : 'order-2'
       )}>
         <div className={cn(
-          "space-y-4 max-w-prose break-words",
+          "space-y-4 break-words",
           role === 'user' ? 'pt-1.5' : 'px-4 py-3 rounded-lg bg-muted'
         )}>
            <ReactMarkdown
@@ -56,16 +58,31 @@ export function ChatMessage({ message, onRateMessage }: ChatMessageProps) {
             </ReactMarkdown>
         </div>
         {role === 'assistant' && content && (
-          <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn("h-7 w-7", rating && 'text-accent fill-accent')}
-              onClick={() => onRateMessage(message.id)}
-              aria-label="Rate message"
-            >
-              <Star className="h-4 w-4" />
-            </Button>
+          <div 
+            className="flex items-center gap-0.5 mt-2 opacity-0 group-hover:opacity-100 transition-opacity"
+            onMouseLeave={() => setHoverRating(0)}
+          >
+            {[1, 2, 3, 4, 5].map((star) => (
+              <Button
+                key={star}
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  "h-7 w-7",
+                  (hoverRating >= star || (!hoverRating && rating && rating >= star)) 
+                    ? 'text-primary' 
+                    : 'text-muted-foreground'
+                )}
+                onMouseEnter={() => setHoverRating(star)}
+                onClick={() => {
+                    const newRating = rating === star ? 0 : star;
+                    onRateMessage(message.id, newRating)
+                }}
+                aria-label={`Rate ${star} star`}
+              >
+                <Star className="h-4 w-4" fill="currentColor" />
+              </Button>
+            ))}
           </div>
         )}
       </div>

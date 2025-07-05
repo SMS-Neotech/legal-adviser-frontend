@@ -246,10 +246,10 @@ export default function Home() {
   };
 
 
-  const handleRateMessage = (messageId: string) => {
+  const handleRateMessage = (messageId: string, rating: number) => {
     if (!activeConversation) return;
     const updatedMessages = activeConversation.messages.map(m =>
-      m.id === messageId ? { ...m, rating: !m.rating } : m
+      m.id === messageId ? { ...m, rating } : m
     );
     const updatedConversation = { ...activeConversation, messages: updatedMessages };
     setConversations(conversations.map((c) =>

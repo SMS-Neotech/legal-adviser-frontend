@@ -10,7 +10,7 @@ import { type ThinkingStep as ThinkingStepType } from "@/lib/api-types";
 
 interface ChatMessagesProps {
   messages: Message[];
-  onRateMessage: (messageId: string) => void;
+  onRateMessage: (messageId: string, rating: number) => void;
   isGenerating: boolean;
   thinkingSteps: (ThinkingStepType & { duration?: string })[];
 }
