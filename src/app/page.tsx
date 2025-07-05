@@ -291,14 +291,13 @@ export default function Home() {
             try {
               const data = JSON.parse(dataStr);
 
-              // Check for AnswerChunk: has a 'content' property (and is not a thinking step)
-              if (typeof data.content === 'string') {
+              if (data.step === 'Answering' && typeof data.message === 'string') {
                 if (!answeringStarted) {
                   // First piece of the answer. The "thinking" phase is over.
                   setThinkingSteps([]);
                   answeringStarted = true;
                 }
-                finalAssistantContent += data.content;
+                finalAssistantContent += data.message;
                 
                 const newAssistantMessage: Message = { 
                   id: assistantMessageId, 
@@ -324,7 +323,7 @@ export default function Home() {
                   })
                 );
               } 
-              // Check for ThinkingStep: has 'step' and 'message' properties
+              // Check for ThinkingStep (and not an answer chunk)
               else if (data.step && typeof data.message === 'string' && !answeringStarted) { 
                 setThinkingSteps(prev => {
                   const existingStepIndex = prev.findIndex(s => s.step === data.step);
