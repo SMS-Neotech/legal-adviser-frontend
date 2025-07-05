@@ -66,7 +66,7 @@ export function ChatMessage({ user, message, isLastMessage, isGenerating, onRate
   return (
     <div className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}>
         <div className={cn("flex gap-4", isUser ? "flex-row-reverse items-end" : "flex-row items-end")}>
-            <Avatar className={cn("w-8 h-8 border", isUser && "mb-2")}>
+            <Avatar className={cn("w-8 h-8 border", isUser && "mb-3")}>
                 {isUser ? (
                     user?.photoURL ? (
                         <AvatarImage src={user.photoURL} alt={user.displayName || 'User avatar'} />
