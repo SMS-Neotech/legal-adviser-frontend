@@ -252,7 +252,6 @@ export default function Home() {
     let answeringStarted = false;
     let finalAssistantContent = "";
     const assistantMessageId = uuidv4();
-    let assistantMessageAdded = false;
 
     abortControllerRef.current = new AbortController();
 
@@ -293,38 +292,41 @@ export default function Home() {
 
               if (data.step === 'Answering' && typeof data.message === 'string') {
                 if (!answeringStarted) {
-                  // First piece of the answer. The "thinking" phase is over.
                   setThinkingSteps([]);
                   answeringStarted = true;
+                  
+                  // Add the message shell to the conversation
+                  const newAssistantMessage: Message = { 
+                      id: assistantMessageId, 
+                      role: 'assistant', 
+                      content: '', // Start with empty content
+                      createdAt: Date.now(), 
+                      rating: 0, 
+                      comment: '' 
+                  };
+
+                  setConversations(prev => prev.map(c => 
+                      c.id === conversationId 
+                      ? { ...c, messages: [...c.messages, newAssistantMessage] } 
+                      : c
+                  ));
                 }
+                
+                // Now, for every chunk (including the first), append the content and update the state
                 finalAssistantContent += data.message;
                 
-                const newAssistantMessage: Message = { 
-                  id: assistantMessageId, 
-                  role: 'assistant', 
-                  content: finalAssistantContent, 
-                  createdAt: Date.now(), 
-                  rating: 0, 
-                  comment: '' 
-                };
-
                 setConversations(prev => prev.map(c => {
                     if (c.id !== conversationId) return c;
-                    
-                    if (!assistantMessageAdded) {
-                      assistantMessageAdded = true;
-                      return { ...c, messages: [...c.messages, newAssistantMessage] };
-                    } else {
-                      const updatedMessages = c.messages.map(m => 
-                        m.id === assistantMessageId ? newAssistantMessage : m
-                      );
-                      return { ...c, messages: updatedMessages };
-                    }
-                  })
-                );
-              } 
-              // Check for ThinkingStep (and not an answer chunk)
-              else if (data.step && typeof data.message === 'string' && !answeringStarted) { 
+
+                    const updatedMessages = c.messages.map(m => 
+                        m.id === assistantMessageId 
+                        ? { ...m, content: finalAssistantContent } 
+                        : m
+                    );
+                    return { ...c, messages: updatedMessages };
+                }));
+
+              } else if (data.step && typeof data.message === 'string' && !answeringStarted) { 
                 setThinkingSteps(prev => {
                   const existingStepIndex = prev.findIndex(s => s.step === data.step);
                   if (existingStepIndex > -1) {
