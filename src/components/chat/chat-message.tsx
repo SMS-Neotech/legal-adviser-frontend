@@ -1,0 +1,97 @@
+"use client";
+
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { ThumbsUp, ThumbsDown, Bot, User } from "lucide-react";
+import { type Message } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import { CodeBlock } from "@/components/code-block";
+
+interface ChatMessageProps {
+  message: Message;
+  onRateMessage: (messageId: string, rating: 'good' | 'bad') => void;
+}
+
+export function ChatMessage({ message, onRateMessage }: ChatMessageProps) {
+  const { role, content, rating } = message;
+
+  const renderContent = (text: string) => {
+    const codeBlockRegex = /```(\w*)\n([\s\S]*?)```/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = codeBlockRegex.exec(text)) !== null) {
+      const [fullMatch, language, code] = match;
+      const matchIndex = match.index;
+
+      if (matchIndex > lastIndex) {
+        parts.push(text.substring(lastIndex, matchIndex));
+      }
+
+      parts.push(<CodeBlock key={matchIndex} language={language} code={code} />);
+      lastIndex = matchIndex + fullMatch.length;
+    }
+
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+
+    return parts.map((part, index) =>
+      typeof part === 'string' ? (
+        <p key={index} className="whitespace-pre-wrap">{part}</p>
+      ) : (
+        part
+      )
+    );
+  };
+  
+  return (
+    <div className={cn(
+      "flex items-start gap-4 p-4",
+      role === 'user' ? 'justify-end' : ''
+    )}>
+      {role === 'assistant' && (
+        <Avatar className="w-8 h-8">
+          <AvatarFallback><Bot /></AvatarFallback>
+        </Avatar>
+      )}
+      <div className={cn(
+        "group max-w-lg lg:max-w-2xl break-words",
+        role === 'user' ? 'order-1' : 'order-2'
+      )}>
+        <div className={cn(
+          "px-4 py-2 rounded-lg",
+          role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'
+        )}>
+          {renderContent(content)}
+        </div>
+        {role === 'assistant' && content && (
+          <div className="flex items-center gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn("h-7 w-7", rating === 'good' && 'bg-accent text-accent-foreground')}
+              onClick={() => onRateMessage(message.id, 'good')}
+            >
+              <ThumbsUp className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn("h-7 w-7", rating === 'bad' && 'bg-destructive/20 text-destructive')}
+              onClick={() => onRateMessage(message.id, 'bad')}
+            >
+              <ThumbsDown className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </div>
+      {role === 'user' && (
+        <Avatar className="w-8 h-8 order-2">
+          <AvatarFallback><User /></AvatarFallback>
+        </Avatar>
+      )}
+    </div>
+  );
+}
