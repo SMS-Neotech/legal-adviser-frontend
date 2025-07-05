@@ -59,7 +59,7 @@ export function ChatMessages({ messages, conversationCreatedAt, onRateMessage, o
             <React.Fragment key={message.id}>
               {dateSeparator}
               <ChatMessage 
-                message={message} 
+                message={{ ...message, createdAt: messageTimestamp }}
                 onRateMessage={onRateMessage} 
                 onCommentMessage={onCommentMessage}
               />
