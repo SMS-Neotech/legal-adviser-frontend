@@ -121,6 +121,8 @@ export default function Home() {
   }, [user, loading, toast]);
 
   useEffect(() => {
+    // This effect ensures that the app starts with a new chat view.
+    // It runs only once when the component mounts.
     setActiveConversationId(null);
   }, []);
 
@@ -189,8 +191,8 @@ export default function Home() {
     setIsGenerating(true);
     setThinkingSteps([]);
 
-    const userMessage: Message = { id: uuidv4(), role: 'user', content, createdAt: Date.now() };
-    const assistantMessage: Message = { id: uuidv4(), role: "assistant", content: "", createdAt: Date.now() };
+    const userMessage: Message = { id: uuidv4(), role: 'user', content, createdAt: Date.now(), rating: 0, comment: '' };
+    const assistantMessage: Message = { id: uuidv4(), role: "assistant", content: "", createdAt: Date.now(), rating: 0, comment: '' };
 
     let conversationId = activeConversationId;
     let isNewChat = !conversationId;

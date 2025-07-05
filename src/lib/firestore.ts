@@ -17,7 +17,16 @@ export const getConversations = async (userId: string): Promise<Conversation[]> 
   const conversationsCollection = getConversationsCollection(userId);
   const q = query(conversationsCollection, orderBy('createdAt', 'desc'));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Conversation));
+  return snapshot.docs.map(doc => {
+    const conversation = { id: doc.id, ...doc.data() } as Conversation;
+    // Ensure messages have default values for optional fields to avoid sending `undefined` back to Firestore.
+    conversation.messages = (conversation.messages || []).map(m => ({
+      ...m,
+      rating: m.rating || 0,
+      comment: m.comment || ''
+    }));
+    return conversation;
+  });
 };
 
 // Add a new conversation with a specific ID
