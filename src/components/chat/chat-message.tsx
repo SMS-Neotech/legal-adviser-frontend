@@ -78,7 +78,7 @@ export function ChatMessage({ user, message, isLastMessage, isGenerating, onRate
                 <div className={cn("flex items-center", isUser ? "flex-row-reverse" : "flex-row")}>
                     <div className={cn(
                         "relative rounded-lg border bg-card text-card-foreground shadow-sm",
-                        isUser ? "rounded-br-none" : "rounded-tl-none"
+                        isUser ? "rounded-br-none" : "rounded-bl-none"
                     )}>
                         <div className="p-4 space-y-4 break-words text-xs">
                         <ReactMarkdown
