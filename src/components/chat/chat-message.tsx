@@ -9,7 +9,7 @@ import { CodeBlock } from "@/components/code-block";
 
 interface ChatMessageProps {
   message: Message;
-  onRateMessage: (messageId: string, rating: 'good' | 'bad') => void;
+  onRateMessage: (messageId: string, rating: 'up' | 'down') => void;
 }
 
 export function ChatMessage({ message, onRateMessage }: ChatMessageProps) {
@@ -48,7 +48,7 @@ export function ChatMessage({ message, onRateMessage }: ChatMessageProps) {
   
   return (
     <div className={cn(
-      "flex items-start gap-4 p-4",
+      "flex items-start gap-4",
       role === 'user' ? 'justify-end' : ''
     )}>
       {role === 'assistant' && (
@@ -57,30 +57,30 @@ export function ChatMessage({ message, onRateMessage }: ChatMessageProps) {
         </Avatar>
       )}
       <div className={cn(
-        "group max-w-lg lg:max-w-2xl break-words",
+        "group max-w-2xl break-words",
         role === 'user' ? 'order-1' : 'order-2'
       )}>
         <div className={cn(
-          "px-4 py-2 rounded-lg",
+          "px-4 py-3 rounded-lg",
           role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'
         )}>
           {renderContent(content)}
         </div>
         {role === 'assistant' && content && (
-          <div className="flex items-center gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
             <Button
               variant="ghost"
               size="icon"
-              className={cn("h-7 w-7", rating === 'good' && 'bg-accent text-accent-foreground')}
-              onClick={() => onRateMessage(message.id, 'good')}
+              className={cn("h-7 w-7", rating === 'up' && 'bg-accent text-accent-foreground')}
+              onClick={() => onRateMessage(message.id, 'up')}
             >
               <ThumbsUp className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className={cn("h-7 w-7", rating === 'bad' && 'bg-destructive/20 text-destructive')}
-              onClick={() => onRateMessage(message.id, 'bad')}
+              className={cn("h-7 w-7", rating === 'down' && 'bg-destructive/20 text-destructive')}
+              onClick={() => onRateMessage(message.id, 'down')}
             >
               <ThumbsDown className="h-4 w-4" />
             </Button>

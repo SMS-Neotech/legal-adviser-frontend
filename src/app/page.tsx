@@ -18,9 +18,9 @@ import { useLocalStorage } from "@/hooks/use-local-storage";
 import { ChatMessages } from "@/components/chat/chat-messages";
 import { ChatInput } from "@/components/chat/chat-input";
 import { Logo } from "@/components/icons";
-import { mockChat } from "@/lib/mock-chat";
 import { useToast } from "@/hooks/use-toast";
 import { generateConversationTitle } from "@/ai/flows/generate-conversation-title";
+import { type ThinkingStep } from "@/lib/api-types";
 
 export default function Home() {
   const { toast } = useToast();
@@ -30,6 +30,7 @@ export default function Home() {
     null
   );
   const [isGenerating, setIsGenerating] = React.useState(false);
+  const [thinkingSteps, setThinkingSteps] = React.useState<ThinkingStep[]>([]);
 
   const activeConversation = React.useMemo(() => {
     return conversations.find((c) => c.id === activeConversationId) || null;
@@ -68,17 +69,15 @@ export default function Home() {
   const handleSendMessage = async (content: string) => {
     if (!activeConversation) return;
 
-    const userMessage: Message = { id: uuidv4(), role: "user", content };
+    const userMessage: Message = { id: uuidv4(), role: 'user', content };
     const updatedMessages = [...activeConversation.messages, userMessage];
     const updatedConversation = { ...activeConversation, messages: updatedMessages };
 
-    const updatedConversations = conversations.map((c) =>
-      c.id === activeConversationId ? updatedConversation : c
-    );
-    setConversations(updatedConversations);
+    setConversations(prev => prev.map(c => c.id === activeConversationId ? updatedConversation : c));
     setIsGenerating(true);
+    setThinkingSteps([]);
 
-    // Generate title after second message
+    // Generate title after first user message
     if (updatedMessages.filter(m => m.role === 'user').length === 1 && updatedConversation.title === "New Conversation") {
         try {
           const conversationHistory = updatedMessages.map(m => `${m.role}: ${m.content}`).join('\n');
@@ -91,17 +90,77 @@ export default function Home() {
 
     const assistantMessage: Message = { id: uuidv4(), role: "assistant", content: "" };
     const finalMessages = [...updatedMessages, assistantMessage];
-    let finalConversation = { ...updatedConversation, messages: finalMessages };
+    const finalConversation = { ...updatedConversation, messages: finalMessages };
 
-    setConversations(conversations.map((c) => c.id === activeConversationId ? finalConversation : c));
+    setConversations(prev => prev.map(c => c.id === activeConversationId ? finalConversation : c));
 
     try {
-      let fullResponse = "";
-      for await (const partialResponse of mockChat(content)) {
-        fullResponse += partialResponse;
-        assistantMessage.content = fullResponse;
-        const streamingConversation = { ...finalConversation, messages: [...updatedMessages, assistantMessage] };
-        setConversations(conversations.map((c) => c.id === activeConversationId ? streamingConversation : c));
+      const response = await fetch('http://localhost:8000/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ queries: [content] }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status} ${response.statusText}`);
+      }
+      
+      if (!response.body) {
+        throw new Error("Response body is null");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+            if (line.startsWith('data: ')) {
+                const dataStr = line.substring(6);
+                if (!dataStr) continue;
+                try {
+                  const data = JSON.parse(dataStr);
+
+                  if (data.step) {
+                      setThinkingSteps(prev => {
+                          const existingStepIndex = prev.findIndex(s => s.step === data.step);
+                          if (existingStepIndex > -1) {
+                              const newSteps = [...prev];
+                              newSteps[existingStepIndex] = data;
+                              return newSteps;
+                          }
+                          return [...prev, data];
+                      });
+                  } else if (data.content) {
+                      setConversations(currentConversations => {
+                          return currentConversations.map(conv => {
+                              if (conv.id === activeConversationId) {
+                                  const newMessages = [...conv.messages];
+                                  const lastMessage = newMessages[newMessages.length - 1];
+                                  if (lastMessage && lastMessage.role === 'assistant') {
+                                      newMessages[newMessages.length - 1] = {
+                                          ...lastMessage,
+                                          content: lastMessage.content + data.content,
+                                      };
+                                  }
+                                  return { ...conv, messages: newMessages };
+                              }
+                              return conv;
+                          });
+                      });
+                  }
+                } catch (e) {
+                  console.error("Failed to parse SSE data chunk:", dataStr, e);
+                }
+            }
+        }
       }
     } catch (error) {
       toast({
@@ -117,10 +176,11 @@ export default function Home() {
       }
     } finally {
       setIsGenerating(false);
+      setThinkingSteps([]);
     }
   };
 
-  const handleRateMessage = (messageId: string, rating: 'good' | 'bad') => {
+  const handleRateMessage = (messageId: string, rating: 'up' | 'down') => {
     if (!activeConversation) return;
     const updatedMessages = activeConversation.messages.map(m =>
       m.id === messageId ? { ...m, rating } : m
@@ -173,10 +233,10 @@ export default function Home() {
 
         {activeConversation ? (
           <div className="flex-1 flex flex-col overflow-hidden">
-            <ChatMessages messages={activeConversation.messages} onRateMessage={handleRateMessage} isGenerating={isGenerating} />
+            <ChatMessages messages={activeConversation.messages} onRateMessage={handleRateMessage} isGenerating={isGenerating} thinkingSteps={thinkingSteps} />
             <ChatInput onSendMessage={handleSendMessage} isGenerating={isGenerating} />
             <footer className="text-center text-xs text-muted-foreground p-2">
-              Disclaimer: Responses might be inaccurate. Please verify with official sources.
+              ⚠️ Disclaimer: Responses may be inaccurate. Verify with official legal sources.
             </footer>
           </div>
         ) : (
