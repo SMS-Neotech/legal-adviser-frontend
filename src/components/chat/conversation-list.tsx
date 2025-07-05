@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -73,11 +74,11 @@ export function ConversationList({
       <div className="p-2">
         <Button
           variant="outline"
-          className="w-full justify-start gap-2"
+          className="w-full justify-start gap-2 group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center"
           onClick={onNewConversation}
         >
           <PlusCircle className="size-4" />
-          New Chat
+          <span className="group-data-[collapsible=icon]:hidden">New Chat</span>
         </Button>
       </div>
       <SidebarMenu className="p-2 flex-1">
@@ -155,3 +156,5 @@ export function ConversationList({
     </div>
   );
 }
+
+    

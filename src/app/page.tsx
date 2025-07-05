@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -86,25 +87,26 @@ export default function Home() {
 
     let conversationId = activeConversationId;
     let isNewChat = !conversationId;
+    let currentConversations = conversations;
 
-    // If it's a new conversation, create it.
     if (isNewChat) {
-        const newConversationId = uuidv4();
-        const newConversation: Conversation = {
-            id: newConversationId,
-            title: content.substring(0, 30), // Set title from first message
-            messages: [],
-            createdAt: Date.now(),
-        };
-        setConversations(prev => [newConversation, ...prev]);
-        setActiveConversationId(newConversationId);
-        conversationId = newConversationId; // Use the new ID for the rest of the function
+      const newConversationId = uuidv4();
+      const newConversation: Conversation = {
+        id: newConversationId,
+        title: content.substring(0, 30),
+        messages: [],
+        createdAt: Date.now(),
+      };
+      const newConversations = [newConversation, ...currentConversations];
+      setConversations(newConversations);
+      setActiveConversationId(newConversationId);
+      conversationId = newConversationId;
+      currentConversations = newConversations;
     }
     
     const userMessage: Message = { id: uuidv4(), role: 'user', content };
     const assistantMessage: Message = { id: uuidv4(), role: "assistant", content: "" };
 
-    // Add user message and assistant placeholder
     setConversations(prev => prev.map(c => 
       c.id === conversationId 
         ? { ...c, messages: [...c.messages, userMessage, assistantMessage] } 
@@ -148,7 +150,17 @@ export default function Home() {
                 try {
                   const data = JSON.parse(dataStr);
 
-                  if (data.step) {
+                  if (data.step === 'Answering' && data.message) {
+                      setConversations(prev => prev.map(c => {
+                          if (c.id !== conversationId) return c;
+                          const newMessages = [...c.messages];
+                          const lastMessage = newMessages[newMessages.length - 1];
+                          if (lastMessage && lastMessage.role === 'assistant') {
+                              lastMessage.content += data.message;
+                          }
+                          return { ...c, messages: newMessages };
+                      }));
+                  } else if (data.step) {
                       setThinkingSteps(prev => {
                           const existingStepIndex = prev.findIndex(s => s.step === data.step);
                           if (existingStepIndex > -1) {
@@ -157,28 +169,6 @@ export default function Home() {
                               return newSteps;
                           }
                           return [...prev, data];
-                      });
-                  } else if (data.content) {
-                      setConversations(prevConversations => {
-                          const newConversations = [...prevConversations];
-                          const convIndex = newConversations.findIndex(c => c.id === conversationId);
-
-                          if (convIndex > -1) {
-                              const conversationToUpdate = { ...newConversations[convIndex] };
-                              const messages = [...conversationToUpdate.messages];
-                              const lastMessageIndex = messages.length - 1;
-
-                              if (lastMessageIndex >= 0 && messages[lastMessageIndex].role === 'assistant') {
-                                  messages[lastMessageIndex] = {
-                                      ...messages[lastMessageIndex],
-                                      content: messages[lastMessageIndex].content + data.content
-                                  };
-                                  conversationToUpdate.messages = messages;
-                                  newConversations[convIndex] = conversationToUpdate;
-                                  return newConversations;
-                              }
-                          }
-                          return prevConversations;
                       });
                   }
                 } catch (e) {
@@ -318,3 +308,5 @@ export default function Home() {
     </SidebarProvider>
   );
 }
+
+    
