@@ -202,9 +202,9 @@ export default function Home() {
       <Sidebar side="left" collapsible="icon" className="group" variant="sidebar">
         <SidebarHeader>
           <div className="flex items-center gap-2">
-            <Logo className="size-6 text-primary" aria-label="Gemini Mini Logo" />
+            <Logo className="size-6 text-primary" aria-label="Legal Advisor Logo" />
             <h2 className="text-lg font-semibold group-data-[collapsible=icon]:hidden">
-              Gemini Mini
+              Legal Advisor
             </h2>
           </div>
         </SidebarHeader>
@@ -226,7 +226,7 @@ export default function Home() {
         <header className="p-2 border-b flex items-center justify-between md:justify-end">
             <SidebarTrigger className="md:hidden" />
             <span className="font-semibold text-center flex-1 md:hidden truncate px-2">
-              {activeConversation?.title ?? "Gemini Mini"}
+              {activeConversation?.title ?? "Legal Advisor"}
             </span>
             <div className="md:hidden w-7"></div>
         </header>
@@ -242,7 +242,7 @@ export default function Home() {
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center gap-4 p-4 text-center">
             <Logo className="size-16 text-primary" />
-            <h1 className="text-2xl font-bold">Welcome to Gemini Mini</h1>
+            <h1 className="text-2xl font-bold">Welcome to Legal Advisor</h1>
             <p className="max-w-md text-muted-foreground">
               Start a new conversation to begin chatting. Your conversations will be saved locally in your browser.
             </p>

@@ -12,7 +12,7 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
       strokeLinejoin="round"
       {...props}
     >
-      <title>Gemini Mini Logo</title>
+      <title>Legal Advisor Logo</title>
       <path d="M10 3L8 21" />
       <path d="M14 3L16 21" />
       <path d="M3 10H21" />
