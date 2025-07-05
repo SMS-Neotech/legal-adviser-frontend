@@ -340,7 +340,7 @@ export default function Home() {
             <WelcomeScreen onSamplePromptClick={handleSendMessage} />
           )}
           <ChatInput onSendMessage={handleSendMessage} isGenerating={isGenerating} />
-          <footer className="text-left text-xs text-muted-foreground p-2">
+          <footer className="text-center text-xs text-muted-foreground p-2">
             ⚠️ Disclaimer: Responses may be inaccurate. Verify with official legal sources.
           </footer>
         </div>

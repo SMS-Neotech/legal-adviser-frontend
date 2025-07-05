@@ -83,7 +83,10 @@ export function ConversationList({
         </Button>
       </div>
       <SidebarSeparator />
-      <SidebarMenu className="p-2 flex-1">
+      <div className="px-2 my-2 text-xs font-semibold tracking-wider uppercase text-muted-foreground group-data-[collapsible=icon]:hidden">
+        Chat History
+      </div>
+      <SidebarMenu className="flex-1 p-2 pt-0">
         {conversations.map((conversation) => (
           <SidebarMenuItem key={conversation.id}>
             {editingId === conversation.id ? (
