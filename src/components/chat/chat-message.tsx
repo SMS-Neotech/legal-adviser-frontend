@@ -37,11 +37,11 @@ export function ChatMessage({ message, onRateMessage, onCommentMessage }: ChatMe
   if (role === 'user') {
     return (
       <div className="flex justify-end w-full">
-          <div className="flex flex-col items-end gap-1">
-              <span className="text-xs text-muted-foreground">{format(new Date(createdAt), 'p')}</span>
-              <div className="flex items-start gap-4">
+          <div className="flex items-start gap-4">
+              <div className="flex flex-col items-end gap-1">
+                  <span className="text-xs text-muted-foreground">{format(new Date(createdAt), 'p')}</span>
                   <div className="group max-w-prose rounded-lg border bg-card text-card-foreground shadow-sm">
-                      <div className="p-4 space-y-4 break-words text-sm">
+                      <div className="p-4 space-y-4 break-words text-xs">
                       <ReactMarkdown
                           remarkPlugins={[remarkGfm]}
                           components={{
@@ -63,10 +63,10 @@ export function ChatMessage({ message, onRateMessage, onCommentMessage }: ChatMe
                       </ReactMarkdown>
                       </div>
                   </div>
-                  <Avatar className="w-8 h-8">
-                      <AvatarFallback><User /></AvatarFallback>
-                  </Avatar>
               </div>
+              <Avatar className="w-8 h-8">
+                  <AvatarFallback><User /></AvatarFallback>
+              </Avatar>
           </div>
       </div>
     )
@@ -83,7 +83,7 @@ export function ChatMessage({ message, onRateMessage, onCommentMessage }: ChatMe
         "group max-w-prose"
       )}>
         <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-            <div className="p-4 space-y-4 break-words text-sm">
+            <div className="p-4 space-y-4 break-words text-xs">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
