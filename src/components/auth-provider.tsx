@@ -22,28 +22,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isFirebaseConfigured = !!auth;
 
   useEffect(() => {
-    if (!auth) {
+    if (!isFirebaseConfigured) {
       setLoading(false);
       return;
     }
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth!, (user) => {
       setUser(user);
       setLoading(false);
     });
     return () => unsubscribe();
-  }, []);
+  }, [isFirebaseConfigured]);
 
   const signInWithGoogle = async () => {
     if (!auth) {
       console.error("Firebase is not configured. Cannot sign in.");
       return;
     }
+    
+    console.log(
+      'Attempting to sign in from origin:',
+      window.location.origin
+    );
+
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
       router.push('/');
     } catch (error) {
       console.error("Error signing in with Google: ", error);
+      console.error(
+        'Please ensure the domain "' +
+          window.location.origin +
+          '" is added to your Firebase project\'s authorized domains.'
+      );
     }
   };
 
