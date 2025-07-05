@@ -58,7 +58,7 @@ export function ChatInput({ onSendMessage, isGenerating }: ChatInputProps) {
         <Button
           type="submit"
           size="icon"
-          className="shrink-0 rounded-full"
+          className="shrink-0 rounded-full h-9 w-9"
           onClick={handleSendMessage}
           disabled={!content.trim() || isGenerating}
           aria-label="Send message"
