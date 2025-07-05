@@ -95,11 +95,11 @@ export function ChatMessages({ user, messages, conversationCreatedAt, onRateMess
         })}
         
         {isGenerating && thinkingSteps.length > 0 && (
-          <div className="flex items-start gap-4 p-4">
-            <span className="w-8 h-8 flex items-center justify-center text-2xl shrink-0 pt-1">
+          <div className="flex items-start gap-2 py-2 px-4">
+            <span className="w-8 h-8 flex items-center justify-center text-2xl shrink-0">
               <Gavel />
             </span>
-            <div className="flex flex-col items-start gap-2 pt-1">
+            <div className="flex flex-col items-start gap-1 pt-1">
               {thinkingSteps.map((step, index) => (
                 <ThinkingStep key={index} step={step} />
               ))}

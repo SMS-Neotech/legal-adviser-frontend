@@ -290,13 +290,14 @@ export default function Home() {
             if (!dataStr) continue;
             try {
               const data = JSON.parse(dataStr);
+              const chunk = data.content || data.message;
               
-              if (data.step === 'Answering' && typeof data.message === 'string') {
+              if (data.step === 'Answering' && typeof chunk === 'string') {
                 if (!answeringStarted) {
                   setThinkingSteps([]);
                   answeringStarted = true;
                 }
-                finalAssistantContent += data.message;
+                finalAssistantContent += chunk;
                 
                 const newAssistantMessage: Message = { 
                   id: assistantMessageId, 
@@ -491,9 +492,14 @@ export default function Home() {
           />
         </SidebarContent>
         <SidebarFooter className="items-center group-data-[collapsible=icon]:flex-col">
-          <p className="text-xs text-muted-foreground p-2 text-center group-data-[collapsible=icon]:hidden">
+          <a
+            href="https://sms-neotech.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-muted-foreground p-2 text-center hover:text-primary group-data-[collapsible=icon]:hidden"
+          >
             {t('copyright')}
-          </p>
+          </a>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="flex flex-col h-svh">
