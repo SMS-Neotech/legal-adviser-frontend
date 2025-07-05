@@ -136,7 +136,7 @@ export function ChatMessage({ message, onRateMessage, onCommentMessage }: ChatMe
                       <div className="grid gap-4">
                           <div className="space-y-2">
                               <h4 className="font-medium leading-none">Comment</h4>
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-xs text-muted-foreground">
                                   Add or edit the comment for this response.
                               </p>
                           </div>

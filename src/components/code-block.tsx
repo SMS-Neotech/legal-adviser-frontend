@@ -46,7 +46,7 @@ export function CodeBlock({ language, code }: CodeBlockProps) {
         {hasCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
       </Button>
       <pre className={cn(
-        "my-4 p-4 pt-8 bg-secondary rounded-md overflow-x-auto text-sm",
+        "my-4 p-4 pt-8 bg-secondary rounded-md overflow-x-auto text-xs",
         !language && "pt-4"
         )}>
         <code>{code}</code>
