@@ -24,22 +24,28 @@ export function ChatMessages({ messages, conversationCreatedAt, onRateMessage, o
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
   const viewportRef = React.useRef<HTMLDivElement>(null);
   const prevConversationId = React.useRef<string | null>(null);
+  const prevMessageLength = React.useRef(0);
   let lastDate: Date | null = null;
 
   React.useEffect(() => {
     if (!viewportRef.current) return;
-
+    
+    // If the conversation ID changes, scroll to the top.
     if (prevConversationId.current !== conversationId) {
       viewportRef.current.scrollTop = 0;
       prevConversationId.current = conversationId;
-    } else {
+    } 
+    // Otherwise, if a new message is added, scroll to the bottom.
+    else if (messages.length > prevMessageLength.current) {
       viewportRef.current.scrollTop = viewportRef.current.scrollHeight;
     }
+    
+    prevMessageLength.current = messages.length;
   }, [messages, isGenerating, thinkingSteps, conversationId]);
 
   return (
     <ScrollArea className="flex-1" ref={scrollAreaRef} viewportRef={viewportRef}>
-      <div className="p-4 space-y-4">
+      <div className="p-4 space-y-6">
         {messages.map((message, index) => {
           const messageTimestamp = message.createdAt || conversationCreatedAt + index;
           const currentDate = new Date(messageTimestamp);

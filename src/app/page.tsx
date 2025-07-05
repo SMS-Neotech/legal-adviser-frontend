@@ -108,6 +108,13 @@ export default function Home() {
         try {
           const userConversations = await getConversations(user.uid);
           setConversations(userConversations);
+          
+          const lastActiveId = sessionStorage.getItem('activeConversationId');
+          if (lastActiveId && userConversations.some(c => c.id === lastActiveId)) {
+            setActiveConversationId(lastActiveId);
+          } else {
+            setActiveConversationId(null);
+          }
         } catch (error) {
           console.error("Error fetching conversations:", error);
           toast({
@@ -120,12 +127,14 @@ export default function Home() {
       fetchConversations();
     }
   }, [user, loading, toast]);
-
+  
   useEffect(() => {
-    // This effect ensures that the app starts with a new chat view.
-    // It runs only once when the component mounts.
-    setActiveConversationId(null);
-  }, []);
+    if (activeConversationId) {
+      sessionStorage.setItem('activeConversationId', activeConversationId);
+    } else {
+      sessionStorage.removeItem('activeConversationId');
+    }
+  }, [activeConversationId]);
 
   const activeConversation = React.useMemo(() => {
     return conversations.find((c) => c.id === activeConversationId) || null;
@@ -271,13 +280,13 @@ export default function Home() {
             if (!dataStr) continue;
             try {
               const data = JSON.parse(dataStr);
-
-              if (data.step === 'Answering' && data.message) {
+              
+              if (data.content) { // This is an answer chunk
                 if (!answeringStarted) {
                   setThinkingSteps([]);
                   answeringStarted = true;
                 }
-                finalAssistantContent += data.message;
+                finalAssistantContent += data.content;
                 
                 setConversations(prev => {
                   return prev.map(c => {
@@ -297,7 +306,7 @@ export default function Home() {
                     }
                   });
                 });
-              } else if (data.step && !answeringStarted) {
+              } else if (data.step && !answeringStarted) { // This is a thinking step
                 setThinkingSteps(prev => {
                   const existingStepIndex = prev.findIndex(s => s.step === data.step);
                   if (existingStepIndex > -1) {
@@ -355,7 +364,7 @@ export default function Home() {
 
     const originalMessages = activeConversation.messages;
     const updatedMessages = originalMessages.map(m =>
-      m.id === messageId ? { ...m, rating, comment: m.comment || '' } : m // Ensure comment is not undefined
+      m.id === messageId ? { ...m, rating, comment: m.comment || '' } : m
     );
     
     setConversations(conversations.map((c) =>
@@ -378,7 +387,7 @@ export default function Home() {
     
     const originalMessages = activeConversation.messages;
     const updatedMessages = originalMessages.map(m =>
-      m.id === messageId ? { ...m, comment, rating: m.rating || 0 } : m // Ensure rating is not undefined
+      m.id === messageId ? { ...m, comment, rating: m.rating || 0 } : m
     );
 
     setConversations(conversations.map((c) =>
