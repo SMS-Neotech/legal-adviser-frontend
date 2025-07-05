@@ -5,22 +5,25 @@ import * as React from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { type Message } from "@/lib/types";
 import { ChatMessage } from "./chat-message";
-import { Gavel } from "lucide-react";
+import { Gavel, RefreshCw } from "lucide-react";
 import { ThinkingStep } from "./thinking-step";
 import { type ThinkingStep as ThinkingStepType } from "@/lib/api-types";
 import { format, isSameDay, isToday, isYesterday } from "date-fns";
+import { Button } from "@/components/ui/button";
 
 interface ChatMessagesProps {
   messages: Message[];
   conversationCreatedAt: number;
   onRateMessage: (messageId: string, rating: number) => void;
   onCommentMessage: (messageId: string, comment: string) => void;
+  onEditMessage: (message: Message) => void;
+  onRegenerateResponse: () => void;
   isGenerating: boolean;
   thinkingSteps: (ThinkingStepType & { duration?: string })[];
   conversationId: string | null;
 }
 
-export function ChatMessages({ messages, conversationCreatedAt, onRateMessage, onCommentMessage, isGenerating, thinkingSteps, conversationId }: ChatMessagesProps) {
+export function ChatMessages({ messages, conversationCreatedAt, onRateMessage, onCommentMessage, onEditMessage, onRegenerateResponse, isGenerating, thinkingSteps, conversationId }: ChatMessagesProps) {
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
   const viewportRef = React.useRef<HTMLDivElement>(null);
   const prevConversationId = React.useRef<string | null>(null);
@@ -30,26 +33,28 @@ export function ChatMessages({ messages, conversationCreatedAt, onRateMessage, o
   React.useEffect(() => {
     if (!viewportRef.current) return;
     
-    // If the conversation ID changes, scroll to the top.
     if (prevConversationId.current !== conversationId) {
       viewportRef.current.scrollTop = 0;
       prevConversationId.current = conversationId;
     } 
-    // Otherwise, if a new message is added, scroll to the bottom.
-    else if (messages.length > prevMessageLength.current) {
+    else if (messages.length > prevMessageLength.current || isGenerating) {
       viewportRef.current.scrollTop = viewportRef.current.scrollHeight;
     }
     
     prevMessageLength.current = messages.length;
   }, [messages, isGenerating, thinkingSteps, conversationId]);
 
+  const lastMessage = messages[messages.length - 1];
+  const showRegenerateButton = !isGenerating && lastMessage && lastMessage.role === 'assistant';
+
   return (
     <ScrollArea className="flex-1" ref={scrollAreaRef} viewportRef={viewportRef}>
-      <div className="p-4 space-y-6">
+      <div className="p-4 space-y-2">
         {messages.map((message, index) => {
           const messageTimestamp = message.createdAt || conversationCreatedAt + index;
           const currentDate = new Date(messageTimestamp);
           let dateSeparator: React.ReactNode = null;
+          const isLastMessage = index === messages.length - 1;
 
           if (!lastDate || !isSameDay(currentDate, lastDate)) {
             let dateLabel;
@@ -73,15 +78,19 @@ export function ChatMessages({ messages, conversationCreatedAt, onRateMessage, o
               {dateSeparator}
               <ChatMessage 
                 message={{ ...message, createdAt: messageTimestamp }}
+                isLastMessage={isLastMessage}
+                isGenerating={isGenerating}
                 onRateMessage={onRateMessage} 
                 onCommentMessage={onCommentMessage}
+                onEditMessage={onEditMessage}
+                onRegenerateResponse={onRegenerateResponse}
               />
             </React.Fragment>
           )
         })}
         
         {isGenerating && thinkingSteps.length > 0 && (
-          <div className="flex items-start gap-4">
+          <div className="flex items-start gap-4 p-4">
             <span className="w-8 h-8 flex items-center justify-center text-2xl shrink-0 pt-1">
               <Gavel />
             </span>
@@ -101,6 +110,15 @@ export function ChatMessages({ messages, conversationCreatedAt, onRateMessage, o
                 <span className="h-2 w-2 bg-muted-foreground rounded-full animate-pulse [animation-delay:-0.15s]"></span>
                 <span className="h-2 w-2 bg-muted-foreground rounded-full animate-pulse"></span>
             </div>
+          </div>
+        )}
+
+         {showRegenerateButton && (
+          <div className="flex justify-center py-4">
+            <Button variant="outline" size="sm" onClick={onRegenerateResponse}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Regenerate response
+            </Button>
           </div>
         )}
       </div>

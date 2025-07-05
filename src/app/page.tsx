@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
 import {
@@ -89,12 +89,15 @@ export default function Home() {
   const { user, loading, logout } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [conversations, setConversations] = React.useState<Conversation[]>([]);
-  const [activeConversationId, setActiveConversationId] = React.useState<string | null>(null);
-  const [isGenerating, setIsGenerating] = React.useState(false);
-  const [thinkingSteps, setThinkingSteps] = React.useState<ThinkingStep[]>([]);
-  const [selectedModel, setSelectedModel] = React.useState('Gemini Flash');
-  const abortControllerRef = React.useRef<AbortController | null>(null);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [thinkingSteps, setThinkingSteps] = useState<ThinkingStep[]>([]);
+  const [selectedModel, setSelectedModel] = useState('Gemini Flash');
+  const [inputValue, setInputValue] = useState("");
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const chatInputRef = useRef<HTMLTextAreaElement>(null);
+
 
   useEffect(() => {
     if (!loading && !user) {
@@ -110,9 +113,8 @@ export default function Home() {
           setConversations(userConversations);
           
           const lastActiveId = sessionStorage.getItem('activeConversationId');
-          const isPageReload = performance.navigation.type === performance.navigation.TYPE_RELOAD;
           
-          if (lastActiveId && !isPageReload && userConversations.some(c => c.id === lastActiveId)) {
+          if (lastActiveId && performance.navigation.type === performance.navigation.TYPE_RELOAD && userConversations.some(c => c.id === lastActiveId)) {
             setActiveConversationId(lastActiveId);
           } else {
             setActiveConversationId(null);
@@ -204,15 +206,16 @@ export default function Home() {
     }
   };
 
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (content: string, conversationToUpdateId?: string) => {
     if (!content.trim() || !user) return;
 
     setIsGenerating(true);
     setThinkingSteps([]);
+    setInputValue("");
 
     const userMessage: Message = { id: uuidv4(), role: 'user', content, createdAt: Date.now(), rating: 0, comment: '' };
     
-    let conversationId = activeConversationId;
+    let conversationId = conversationToUpdateId || activeConversationId;
     let isNewChat = !conversationId;
     
     if (isNewChat) {
@@ -291,25 +294,18 @@ export default function Home() {
                 }
                 finalAssistantContent += data.message;
                 
-                setConversations(prev => {
-                  return prev.map(c => {
-                    if (c.id !== conversationId) return c;
-                    
-                    if (!assistantMessageAdded) {
-                      assistantMessageAdded = true;
-                      const assistantMessage: Message = { id: assistantMessageId, role: "assistant", content: finalAssistantContent, createdAt: Date.now(), rating: 0, comment: '' };
-                      return { ...c, messages: [...c.messages, assistantMessage] };
-                    } else {
-                       const updatedMessages = c.messages.map((msg, index) => {
-                         if (index === c.messages.length - 1 && msg.role === 'assistant') {
-                           return { ...msg, content: finalAssistantContent };
-                         }
-                         return msg;
-                       });
-                       return { ...c, messages: updatedMessages };
-                    }
-                  });
-                });
+                if (!assistantMessageAdded) {
+                  assistantMessageAdded = true;
+                  setConversations(prev => prev.map(c => c.id === conversationId
+                    ? { ...c, messages: [...c.messages, { id: assistantMessageId, role: 'assistant', content: finalAssistantContent, createdAt: Date.now(), rating: 0, comment: '' }] }
+                    : c
+                  ));
+                } else {
+                  setConversations(prev => prev.map(c => c.id === conversationId
+                    ? { ...c, messages: c.messages.map(m => m.id === assistantMessageId ? { ...m, content: finalAssistantContent } : m) }
+                    : c
+                  ));
+                }
               } else if (data.step && !answeringStarted) { // This is a thinking step
                 setThinkingSteps(prev => {
                   const existingStepIndex = prev.findIndex(s => s.step === data.step);
@@ -409,6 +405,41 @@ export default function Home() {
     }
   };
 
+  const handleEditMessage = (message: Message) => {
+    if (!user || !activeConversation) return;
+
+    setInputValue(message.content);
+
+    // Remove the message being edited and any subsequent assistant responses
+    setConversations(prev => prev.map(c => {
+      if (c.id !== activeConversationId) return c;
+      const messageIndex = c.messages.findIndex(m => m.id === message.id);
+      if (messageIndex === -1) return c;
+      return { ...c, messages: c.messages.slice(0, messageIndex) };
+    }));
+
+    chatInputRef.current?.focus();
+  };
+
+  const handleRegenerateResponse = () => {
+    if (!user || !activeConversation) return;
+
+    const lastUserMessage = [...activeConversation.messages].reverse().find(m => m.role === 'user');
+
+    if (lastUserMessage) {
+        // Remove the last assistant response if it exists
+        setConversations(prev => prev.map(c => {
+            if (c.id !== activeConversationId) return c;
+            const lastMessage = c.messages[c.messages.length - 1];
+            if (lastMessage.role === 'assistant') {
+                return { ...c, messages: c.messages.slice(0, -1) };
+            }
+            return c;
+        }));
+        handleSendMessage(lastUserMessage.content, activeConversation.id);
+    }
+  };
+
   if (loading || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
@@ -500,6 +531,8 @@ export default function Home() {
               conversationCreatedAt={activeConversation.createdAt}
               onRateMessage={handleRateMessage} 
               onCommentMessage={handleCommentMessage}
+              onEditMessage={handleEditMessage}
+              onRegenerateResponse={handleRegenerateResponse}
               isGenerating={isGenerating} 
               thinkingSteps={thinkingSteps}
               conversationId={activeConversationId}
@@ -507,7 +540,14 @@ export default function Home() {
           ) : (
             <WelcomeScreen onSamplePromptClick={handleSendMessage} />
           )}
-          <ChatInput onSendMessage={handleSendMessage} isGenerating={isGenerating} onStopGenerating={handleStopGenerating} />
+          <ChatInput 
+            ref={chatInputRef}
+            value={inputValue}
+            onValueChange={setInputValue}
+            onSendMessage={handleSendMessage} 
+            isGenerating={isGenerating} 
+            onStopGenerating={handleStopGenerating} 
+          />
           <footer className="text-center text-xs text-muted-foreground p-2">
             ⚠️ Disclaimer: Responses may be inaccurate. Verify with official legal sources.
           </footer>
