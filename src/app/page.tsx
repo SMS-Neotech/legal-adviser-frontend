@@ -110,7 +110,8 @@ export default function Home() {
           setConversations(userConversations);
           
           const lastActiveId = sessionStorage.getItem('activeConversationId');
-          if (lastActiveId && userConversations.some(c => c.id === lastActiveId)) {
+          // Only restore active session if the page wasn't just reloaded
+          if (lastActiveId && userConversations.some(c => c.id === lastActiveId) && performance.navigation.type !== performance.navigation.TYPE_RELOAD) {
             setActiveConversationId(lastActiveId);
           } else {
             setActiveConversationId(null);
@@ -126,6 +127,7 @@ export default function Home() {
       };
       fetchConversations();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, loading, toast]);
   
   useEffect(() => {
@@ -281,12 +283,12 @@ export default function Home() {
             try {
               const data = JSON.parse(dataStr);
               
-              if (data.content) { // This is an answer chunk
+              if (data.step === 'Answering' && data.message) {
                 if (!answeringStarted) {
                   setThinkingSteps([]);
                   answeringStarted = true;
                 }
-                finalAssistantContent += data.content;
+                finalAssistantContent += data.message;
                 
                 setConversations(prev => {
                   return prev.map(c => {
