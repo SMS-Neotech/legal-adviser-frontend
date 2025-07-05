@@ -12,7 +12,7 @@ interface ChatMessagesProps {
   messages: Message[];
   onRateMessage: (messageId: string, rating: 'up' | 'down') => void;
   isGenerating: boolean;
-  thinkingSteps: ThinkingStepType[];
+  thinkingSteps: (ThinkingStepType & { duration?: string })[];
 }
 
 export function ChatMessages({ messages, onRateMessage, isGenerating, thinkingSteps }: ChatMessagesProps) {
@@ -34,8 +34,8 @@ export function ChatMessages({ messages, onRateMessage, isGenerating, thinkingSt
         
         {isGenerating && thinkingSteps.length > 0 && (
           <div className="flex items-start gap-4">
-            <span className="w-8 h-8 flex items-center justify-center text-2xl pt-1">
-              {thinkingSteps[0].icon.emoji}
+            <span className="w-8 h-8 flex items-center justify-center text-2xl shrink-0 pt-1">
+              <Bot />
             </span>
             <div className="flex flex-col items-start gap-2 pt-1">
               {thinkingSteps.map((step, index) => (

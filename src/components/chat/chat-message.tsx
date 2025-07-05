@@ -1,11 +1,13 @@
 "use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ThumbsUp, ThumbsDown, Bot, User } from "lucide-react";
 import { type Message } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { CodeBlock } from "@/components/code-block";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface ChatMessageProps {
   message: Message;
@@ -15,37 +17,6 @@ interface ChatMessageProps {
 export function ChatMessage({ message, onRateMessage }: ChatMessageProps) {
   const { role, content, rating } = message;
 
-  const renderContent = (text: string) => {
-    const codeBlockRegex = /```(\w*)\n([\s\S]*?)```/g;
-    const parts = [];
-    let lastIndex = 0;
-    let match;
-
-    while ((match = codeBlockRegex.exec(text)) !== null) {
-      const [fullMatch, language, code] = match;
-      const matchIndex = match.index;
-
-      if (matchIndex > lastIndex) {
-        parts.push(text.substring(lastIndex, matchIndex));
-      }
-
-      parts.push(<CodeBlock key={matchIndex} language={language} code={code} />);
-      lastIndex = matchIndex + fullMatch.length;
-    }
-
-    if (lastIndex < text.length) {
-      parts.push(text.substring(lastIndex));
-    }
-
-    return parts.map((part, index) =>
-      typeof part === 'string' ? (
-        <p key={index} className="whitespace-pre-wrap">{part}</p>
-      ) : (
-        part
-      )
-    );
-  };
-  
   return (
     <div className={cn(
       "flex items-start gap-4",
@@ -61,9 +32,28 @@ export function ChatMessage({ message, onRateMessage }: ChatMessageProps) {
         role === 'user' ? 'order-1' : 'order-2'
       )}>
         <div className={cn(
+          "space-y-4",
           role === 'user' ? 'pt-1.5' : 'px-4 py-3 rounded-lg bg-muted'
         )}>
-          {renderContent(content)}
+           <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                p: ({...props}) => <p className="whitespace-pre-wrap" {...props} />,
+                code({node, inline, className, children, ...props}) {
+                    const match = /language-(\w+)/.exec(className || '');
+                    if (!inline && match) {
+                      return <CodeBlock language={match[1]} code={String(children).replace(/\n$/, '')} />
+                    }
+                    return (
+                      <code className={cn("font-code bg-black/10 dark:bg-white/10 px-1 py-0.5 rounded-sm", className)} {...props}>
+                          {children}
+                      </code>
+                    );
+                },
+              }}
+            >
+              {content}
+            </ReactMarkdown>
         </div>
         {role === 'assistant' && content && (
           <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">

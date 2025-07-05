@@ -20,9 +20,13 @@ import { ChatMessages } from "@/components/chat/chat-messages";
 import { ChatInput } from "@/components/chat/chat-input";
 import { Logo } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
-import { type ThinkingStep } from "@/lib/api-types";
+import { type ThinkingStep as ThinkingStepApiType } from "@/lib/api-types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
+
+type ThinkingStep = ThinkingStepApiType & {
+  startTime?: number;
+  duration?: string;
+};
 
 function SamplePromptCard({ icon, title, subtitle, onClick }: { icon: string, title: string, subtitle: string, onClick: () => void }) {
     return (
@@ -35,6 +39,42 @@ function SamplePromptCard({ icon, title, subtitle, onClick }: { icon: string, ti
         </button>
     );
 }
+
+function WelcomeScreen({ onSamplePromptClick }: { onSamplePromptClick: (prompt: string) => void }) {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center gap-4 p-4 text-center">
+      <Logo className="size-16 text-primary" />
+      <h1 className="text-2xl font-bold">How can I help you today?</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 w-full max-w-3xl">
+          <SamplePromptCard
+              icon="📝"
+              title="Draft a rental agreement"
+              subtitle="for a residential property."
+              onClick={() => onSamplePromptClick("Draft a simple rental agreement (ghar-bahal karar) for a residential property in Kathmandu, Nepal.")}
+          />
+          <SamplePromptCard
+              icon="🏢"
+              title="Register a company"
+              subtitle="and list the required documents."
+              onClick={() => onSamplePromptClick("What is the process and what are the required documents for registering a private limited company in Nepal?")}
+          />
+          <SamplePromptCard
+              icon="📜"
+              title="Explain Nepal's Labor Act"
+              subtitle="regarding employee rights."
+              onClick={() => onSamplePromptClick("Summarize the key provisions of the Nepal Labor Act, 2074 regarding employee rights.")}
+          />
+          <SamplePromptCard
+              icon="🇳🇵"
+              title="Translate a legal phrase"
+              subtitle="from English to Nepali."
+              onClick={() => onSamplePromptClick("Translate the following legal phrase to Nepali: 'This agreement shall be governed by and construed in accordance with the laws of Nepal.'")}
+          />
+      </div>
+    </div>
+  );
+}
+
 
 export default function Home() {
   const { toast } = useToast();
@@ -86,8 +126,7 @@ export default function Home() {
     if (!content.trim()) return;
 
     let conversationId = activeConversationId;
-    let isNewChat = !conversationId;
-    let currentConversations = conversations;
+    let isNewChat = !conversationId || (activeConversation && activeConversation.messages.length === 0);
 
     if (isNewChat) {
       const newConversationId = uuidv4();
@@ -97,11 +136,9 @@ export default function Home() {
         messages: [],
         createdAt: Date.now(),
       };
-      const newConversations = [newConversation, ...currentConversations];
-      setConversations(newConversations);
+      setConversations(prev => [newConversation, ...prev.filter(c => c.messages.length > 0)]);
       setActiveConversationId(newConversationId);
       conversationId = newConversationId;
-      currentConversations = newConversations;
     }
     
     const userMessage: Message = { id: uuidv4(), role: 'user', content };
@@ -115,6 +152,8 @@ export default function Home() {
 
     setIsGenerating(true);
     setThinkingSteps([]);
+
+    let answeringStarted = false;
 
     try {
       const response = await fetch('http://localhost:8000/chat', {
@@ -151,6 +190,10 @@ export default function Home() {
                   const data = JSON.parse(dataStr);
 
                   if (data.step === 'Answering' && data.message) {
+                      if (!answeringStarted) {
+                          setThinkingSteps([]);
+                          answeringStarted = true;
+                      }
                       setConversations(prev => prev.map(c => {
                           if (c.id !== conversationId) return c;
                           const newMessages = [...c.messages];
@@ -160,15 +203,21 @@ export default function Home() {
                           }
                           return { ...c, messages: newMessages };
                       }));
-                  } else if (data.step) {
+                  } else if (data.step && !answeringStarted) {
                       setThinkingSteps(prev => {
                           const existingStepIndex = prev.findIndex(s => s.step === data.step);
                           if (existingStepIndex > -1) {
                               const newSteps = [...prev];
-                              newSteps[existingStepIndex] = data;
+                              const existingStep = newSteps[existingStepIndex];
+                              if (data.status === 'result' && existingStep.startTime) {
+                                  const duration = (Date.now() - existingStep.startTime) / 1000;
+                                  newSteps[existingStepIndex] = { ...data, startTime: existingStep.startTime, duration: `${duration.toFixed(2)}s` };
+                              } else {
+                                  newSteps[existingStepIndex] = { ...data, startTime: existingStep.startTime };
+                              }
                               return newSteps;
                           }
-                          return [...prev, data];
+                          return [...prev, { ...data, startTime: Date.now() }];
                       });
                   }
                 } catch (e) {
@@ -209,8 +258,9 @@ export default function Home() {
   };
 
   React.useEffect(() => {
-    if (!activeConversationId && conversations.length > 0) {
-      setActiveConversationId(conversations[0].id);
+    const validConversations = conversations.filter(c => c.messages.length > 0);
+    if (!activeConversationId && validConversations.length > 0) {
+      setActiveConversationId(validConversations[0].id);
     }
   }, [conversations, activeConversationId, setActiveConversationId]);
 
@@ -230,7 +280,7 @@ export default function Home() {
         </SidebarHeader>
         <SidebarContent>
           <ConversationList
-            conversations={conversations}
+            conversations={conversations.filter(c => c.messages.length > 0)}
             activeConversationId={activeConversationId}
             onSelectConversation={handleSelectConversation}
             onDeleteConversation={handleDeleteConversation}
@@ -260,7 +310,7 @@ export default function Home() {
         </header>
 
         <div className="flex-1 flex flex-col overflow-hidden">
-          {activeConversation ? (
+          {(activeConversation && activeConversation.messages.length > 0) ? (
             <ChatMessages 
               messages={activeConversation.messages} 
               onRateMessage={handleRateMessage} 
@@ -268,36 +318,7 @@ export default function Home() {
               thinkingSteps={thinkingSteps} 
             />
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center gap-4 p-4 text-center">
-              <Logo className="size-16 text-primary" />
-              <h1 className="text-2xl font-bold">How can I help you today?</h1>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 w-full max-w-3xl">
-                  <SamplePromptCard
-                      icon="📝"
-                      title="Draft a rental agreement"
-                      subtitle="for a residential property."
-                      onClick={() => handleSendMessage("Draft a simple rental agreement (ghar-bahal karar) for a residential property in Kathmandu, Nepal.")}
-                  />
-                  <SamplePromptCard
-                      icon="🏢"
-                      title="Register a company"
-                      subtitle="and list the required documents."
-                      onClick={() => handleSendMessage("What is the process and what are the required documents for registering a private limited company in Nepal?")}
-                  />
-                  <SamplePromptCard
-                      icon="📜"
-                      title="Explain Nepal's Labor Act"
-                      subtitle="regarding employee rights."
-                      onClick={() => handleSendMessage("Summarize the key provisions of the Nepal Labor Act, 2074 regarding employee rights.")}
-                  />
-                  <SamplePromptCard
-                      icon="🇳🇵"
-                      title="Translate a legal phrase"
-                      subtitle="from English to Nepali."
-                      onClick={() => handleSendMessage("Translate the following legal phrase to Nepali: 'This agreement shall be governed by and construed in accordance with the laws of Nepal.'")}
-                  />
-              </div>
-            </div>
+            <WelcomeScreen onSamplePromptClick={handleSendMessage} />
           )}
           <ChatInput onSendMessage={handleSendMessage} isGenerating={isGenerating} />
           <footer className="text-center text-xs text-muted-foreground p-2">
@@ -308,5 +329,3 @@ export default function Home() {
     </SidebarProvider>
   );
 }
-
-    
