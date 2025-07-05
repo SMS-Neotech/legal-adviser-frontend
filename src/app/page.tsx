@@ -34,7 +34,7 @@ function SamplePromptCard({ icon, title, subtitle, onClick }: { icon: string, ti
         <button onClick={onClick} className="p-4 border rounded-lg text-left hover:bg-muted transition-colors flex items-start gap-4 w-full">
             <span className="text-2xl pt-1">{icon}</span>
             <div>
-                <p className="font-semibold">{title}</p>
+                <p className="font-semibold text-sm">{title}</p>
                 <p className="text-xs text-muted-foreground">{subtitle}</p>
             </div>
         </button>
@@ -45,7 +45,7 @@ function WelcomeScreen({ onSamplePromptClick }: { onSamplePromptClick: (prompt: 
   return (
     <div className="flex-1 flex flex-col items-center justify-center gap-4 p-4 text-center">
       <Logo className="size-16 text-primary" />
-      <h1 className="text-xl font-bold">How can I help you today?</h1>
+      <h1 className="text-lg font-bold">How can I help you today?</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 w-full max-w-3xl">
           <SamplePromptCard
               icon="📝"
@@ -316,7 +316,7 @@ export default function Home() {
             <div className="flex items-center gap-2">
                 <SidebarTrigger className="md:hidden" />
                 <Select value={selectedModel} onValueChange={setSelectedModel}>
-                    <SelectTrigger className="w-auto md:w-[180px] bg-transparent border-none focus:ring-0 shadow-none text-sm font-semibold">
+                    <SelectTrigger className="w-auto md:w-[180px] bg-transparent border-none focus:ring-0 shadow-none text-xs font-semibold">
                         <SelectValue placeholder="Select a model" />
                     </SelectTrigger>
                     <SelectContent>
