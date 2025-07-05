@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Gavel, User, Star, MessageSquarePlus, MessageSquareText, RefreshCw, Pencil } from "lucide-react";
 import { type Message } from "@/lib/types";
@@ -13,8 +13,10 @@ import remarkGfm from "remark-gfm";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
+import type { User as FirebaseAuthUser } from 'firebase/auth';
 
 interface ChatMessageProps {
+  user: FirebaseAuthUser | null;
   message: Message;
   isLastMessage: boolean;
   isGenerating: boolean;
@@ -40,7 +42,7 @@ function ChatMessageActions({ onEdit, onRegenerate }: { onEdit: () => void, onRe
 }
 
 
-export function ChatMessage({ message, isLastMessage, isGenerating, onRateMessage, onCommentMessage, onEditMessage, onRegenerateResponse }: ChatMessageProps) {
+export function ChatMessage({ user, message, isLastMessage, isGenerating, onRateMessage, onCommentMessage, onEditMessage, onRegenerateResponse }: ChatMessageProps) {
   const { role, content, rating, comment, createdAt } = message;
   const [hoverRating, setHoverRating] = React.useState(0);
   const [commentText, setCommentText] = React.useState(comment || "");
@@ -59,12 +61,20 @@ export function ChatMessage({ message, isLastMessage, isGenerating, onRateMessag
   const showUserActions = isUser && isLastMessage && !isGenerating;
 
   return (
-    <div className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}>
-        <div className={cn("flex gap-4", isUser ? "flex-row-reverse items-end" : "flex-row items-start")}>
+    <div className={cn("flex w-full items-end", isUser ? "justify-end" : "justify-start")}>
+        <div className={cn("flex gap-4 items-end", isUser ? "flex-row-reverse" : "flex-row")}>
             <Avatar className="w-8 h-8 border">
-                <AvatarFallback>{isUser ? <User /> : <Gavel />}</AvatarFallback>
+                {isUser ? (
+                    user?.photoURL ? (
+                        <AvatarImage src={user.photoURL} alt={user.displayName || 'User avatar'} />
+                    ) : (
+                        <AvatarFallback><User /></AvatarFallback>
+                    )
+                ) : (
+                    <AvatarFallback><Gavel /></AvatarFallback>
+                )}
             </Avatar>
-            <div className={cn("group max-w-prose flex flex-col", isUser ? "items-end" : "items-start mt-5")}>
+            <div className={cn("group max-w-prose flex flex-col", isUser ? "items-end" : "items-start", !isUser && "mt-5")}>
                 <div className={cn("flex items-center", isUser ? "flex-row-reverse" : "flex-row")}>
                     <div className={cn(
                         "relative rounded-lg border bg-card text-card-foreground shadow-sm",

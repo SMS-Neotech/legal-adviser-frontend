@@ -10,8 +10,10 @@ import { ThinkingStep } from "./thinking-step";
 import { type ThinkingStep as ThinkingStepType } from "@/lib/api-types";
 import { format, isSameDay, isToday, isYesterday } from "date-fns";
 import { Button } from "@/components/ui/button";
+import type { User } from 'firebase/auth';
 
 interface ChatMessagesProps {
+  user: User | null;
   messages: Message[];
   conversationCreatedAt: number;
   onRateMessage: (messageId: string, rating: number) => void;
@@ -23,7 +25,7 @@ interface ChatMessagesProps {
   conversationId: string | null;
 }
 
-export function ChatMessages({ messages, conversationCreatedAt, onRateMessage, onCommentMessage, onEditMessage, onRegenerateResponse, isGenerating, thinkingSteps, conversationId }: ChatMessagesProps) {
+export function ChatMessages({ user, messages, conversationCreatedAt, onRateMessage, onCommentMessage, onEditMessage, onRegenerateResponse, isGenerating, thinkingSteps, conversationId }: ChatMessagesProps) {
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
   const viewportRef = React.useRef<HTMLDivElement>(null);
   const prevConversationId = React.useRef<string | null>(null);
@@ -77,6 +79,7 @@ export function ChatMessages({ messages, conversationCreatedAt, onRateMessage, o
             <React.Fragment key={message.id}>
               {dateSeparator}
               <ChatMessage 
+                user={user}
                 message={{ ...message, createdAt: messageTimestamp }}
                 isLastMessage={isLastMessage}
                 isGenerating={isGenerating}

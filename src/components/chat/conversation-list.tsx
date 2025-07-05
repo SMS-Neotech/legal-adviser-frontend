@@ -16,6 +16,7 @@ import {
   Check,
   X,
   PlusCircle,
+  Search,
 } from "lucide-react";
 import { type Conversation } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,7 @@ export function ConversationList({
 }: ConversationListProps) {
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [renameValue, setRenameValue] = React.useState("");
+  const [searchTerm, setSearchTerm] = React.useState("");
 
   const handleEdit = (conversation: Conversation) => {
     setEditingId(conversation.id);
@@ -70,6 +72,13 @@ export function ConversationList({
     }
   };
 
+  const filteredConversations = React.useMemo(() =>
+    conversations.filter((conversation) =>
+      conversation.title.toLowerCase().includes(searchTerm.toLowerCase())
+    ),
+    [conversations, searchTerm]
+  );
+
   return (
     <div className="flex flex-col h-full">
       <div className="p-2">
@@ -82,14 +91,25 @@ export function ConversationList({
           <span className="group-data-[collapsible=icon]:hidden">New Chat</span>
         </Button>
       </div>
+      <div className="px-2 pb-2">
+        <div className="relative group-data-[collapsible=icon]:hidden">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search chats..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-9"
+          />
+        </div>
+      </div>
       <SidebarSeparator />
-      {conversations.length > 0 && (
+      {filteredConversations.length > 0 && (
         <div className="px-2 my-2 text-xs font-semibold tracking-wider uppercase text-muted-foreground group-data-[collapsible=icon]:hidden">
             Chat History
         </div>
       )}
       <SidebarMenu className="flex-1 p-2 pt-0">
-        {conversations.map((conversation) => (
+        {filteredConversations.map((conversation) => (
           <SidebarMenuItem key={conversation.id}>
             {editingId === conversation.id ? (
               <div className="flex items-center gap-1 p-1">

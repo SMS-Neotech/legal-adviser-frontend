@@ -294,15 +294,24 @@ export default function Home() {
                 }
                 finalAssistantContent += data.message;
                 
+                const newAssistantMessage: Message = { 
+                  id: assistantMessageId, 
+                  role: 'assistant', 
+                  content: finalAssistantContent, 
+                  createdAt: Date.now(), 
+                  rating: 0, 
+                  comment: '' 
+                };
+
                 if (!assistantMessageAdded) {
                   assistantMessageAdded = true;
                   setConversations(prev => prev.map(c => c.id === conversationId
-                    ? { ...c, messages: [...c.messages, { id: assistantMessageId, role: 'assistant', content: finalAssistantContent, createdAt: Date.now(), rating: 0, comment: '' }] }
+                    ? { ...c, messages: [...c.messages, newAssistantMessage] }
                     : c
                   ));
                 } else {
                   setConversations(prev => prev.map(c => c.id === conversationId
-                    ? { ...c, messages: c.messages.map(m => m.id === assistantMessageId ? { ...m, content: finalAssistantContent } : m) }
+                    ? { ...c, messages: c.messages.map(m => m.id === assistantMessageId ? newAssistantMessage : m) }
                     : c
                   ));
                 }
@@ -527,6 +536,7 @@ export default function Home() {
         <div className="flex-1 flex flex-col overflow-hidden">
           {(activeConversation && activeConversation.messages.length > 0) ? (
             <ChatMessages 
+              user={user}
               messages={activeConversation.messages} 
               conversationCreatedAt={activeConversation.createdAt}
               onRateMessage={handleRateMessage} 
