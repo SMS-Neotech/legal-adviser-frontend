@@ -64,7 +64,7 @@ export function ChatMessage({ user, message, isLastMessage, isGenerating, onRate
   const showUserActions = isUser && isLastMessage && !isGenerating;
 
   return (
-    <div className={cn("flex w-full items-end", isUser ? "justify-end" : "justify-start")}>
+    <div className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}>
         <div className={cn("flex gap-4 items-end", isUser ? "flex-row-reverse" : "flex-row")}>
             <Avatar className="w-8 h-8 border">
                 {isUser ? (
@@ -77,7 +77,7 @@ export function ChatMessage({ user, message, isLastMessage, isGenerating, onRate
                     <AvatarFallback><Gavel /></AvatarFallback>
                 )}
             </Avatar>
-            <div className={cn("group max-w-prose flex flex-col", isUser ? "items-end" : "items-start", !isUser && "mt-5")}>
+            <div className={cn("group max-w-prose flex flex-col", isUser ? "items-end" : "items-start")}>
                 <div className={cn("flex items-center", isUser ? "flex-row-reverse" : "flex-row")}>
                     <div className={cn(
                         "relative rounded-lg border bg-card text-card-foreground shadow-sm",
