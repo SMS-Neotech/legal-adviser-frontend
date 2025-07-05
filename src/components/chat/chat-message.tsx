@@ -59,7 +59,7 @@ export function ChatMessage({ message, onRateMessage }: ChatMessageProps) {
         </div>
         {role === 'assistant' && content && (
           <div 
-            className="flex items-center gap-0.5 mt-2 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="flex items-center gap-0.5 mt-2"
             onMouseLeave={() => setHoverRating(0)}
           >
             {[1, 2, 3, 4, 5].map((star) => (
