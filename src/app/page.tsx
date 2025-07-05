@@ -275,7 +275,7 @@ export default function Home() {
                 Legal Advisor
               </h2>
             </div>
-            <SidebarTrigger className="hidden md:flex group-data-[collapsible=icon]:hidden" />
+            <SidebarTrigger className="hidden md:flex" />
           </div>
         </SidebarHeader>
         <SidebarContent>
@@ -293,8 +293,8 @@ export default function Home() {
       </Sidebar>
       <SidebarInset className="flex flex-col h-svh">
         <header className="p-2 border-b flex items-center justify-between">
-            <SidebarTrigger className="md:hidden" />
-            <div className="flex-1 flex justify-center">
+            <div className="flex items-center gap-2">
+                <SidebarTrigger className="md:hidden" />
                 <Select value={selectedModel} onValueChange={setSelectedModel}>
                     <SelectTrigger className="w-auto md:w-[180px] bg-transparent border-none focus:ring-0 shadow-none text-base font-semibold">
                         <SelectValue placeholder="Select a model" />
@@ -321,7 +321,7 @@ export default function Home() {
             <WelcomeScreen onSamplePromptClick={handleSendMessage} />
           )}
           <ChatInput onSendMessage={handleSendMessage} isGenerating={isGenerating} />
-          <footer className="text-center text-xs text-muted-foreground p-2">
+          <footer className="text-left text-xs text-muted-foreground p-2">
             ⚠️ Disclaimer: Responses may be inaccurate. Verify with official legal sources.
           </footer>
         </div>

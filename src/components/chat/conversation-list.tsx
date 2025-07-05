@@ -7,6 +7,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarMenuAction,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import {
   MessageSquare,
@@ -81,6 +82,7 @@ export function ConversationList({
           <span className="group-data-[collapsible=icon]:hidden">New Chat</span>
         </Button>
       </div>
+      <SidebarSeparator />
       <SidebarMenu className="p-2 flex-1">
         {conversations.map((conversation) => (
           <SidebarMenuItem key={conversation.id}>
@@ -156,5 +158,3 @@ export function ConversationList({
     </div>
   );
 }
-
-    

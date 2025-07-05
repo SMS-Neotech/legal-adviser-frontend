@@ -4,7 +4,7 @@ import * as React from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { type Message } from "@/lib/types";
 import { ChatMessage } from "./chat-message";
-import { Bot } from "lucide-react";
+import { Gavel } from "lucide-react";
 import { ThinkingStep } from "./thinking-step";
 import { type ThinkingStep as ThinkingStepType } from "@/lib/api-types";
 
@@ -35,7 +35,7 @@ export function ChatMessages({ messages, onRateMessage, isGenerating, thinkingSt
         {isGenerating && thinkingSteps.length > 0 && (
           <div className="flex items-start gap-4">
             <span className="w-8 h-8 flex items-center justify-center text-2xl shrink-0 pt-1">
-              <Bot />
+              <Gavel />
             </span>
             <div className="flex flex-col items-start gap-2 pt-1">
               {thinkingSteps.map((step, index) => (
@@ -47,7 +47,7 @@ export function ChatMessages({ messages, onRateMessage, isGenerating, thinkingSt
 
         {isGenerating && thinkingSteps.length === 0 && messages[messages.length-1]?.role === 'assistant' && messages[messages.length-1]?.content === '' && (
            <div className="flex items-start gap-4 p-4">
-            <Bot className="w-8 h-8 text-muted-foreground" />
+            <Gavel className="w-8 h-8 text-muted-foreground" />
              <div className="flex items-center gap-2 pt-2">
                 <span className="h-2 w-2 bg-muted-foreground rounded-full animate-pulse [animation-delay:-0.3s]"></span>
                 <span className="h-2 w-2 bg-muted-foreground rounded-full animate-pulse [animation-delay:-0.15s]"></span>

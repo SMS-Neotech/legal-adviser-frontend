@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Bot, User, Star } from "lucide-react";
+import { Gavel, User, Star } from "lucide-react";
 import { type Message } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { CodeBlock } from "@/components/code-block";
@@ -26,7 +26,7 @@ export function ChatMessage({ message, onRateMessage }: ChatMessageProps) {
     )}>
       {role === 'assistant' && (
         <Avatar className="w-8 h-8">
-          <AvatarFallback><Bot /></AvatarFallback>
+          <AvatarFallback><Gavel /></AvatarFallback>
         </Avatar>
       )}
       <div className={cn(
