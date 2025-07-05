@@ -11,11 +11,12 @@ import { type ThinkingStep as ThinkingStepType } from "@/lib/api-types";
 interface ChatMessagesProps {
   messages: Message[];
   onRateMessage: (messageId: string, rating: number) => void;
+  onCommentMessage: (messageId: string, comment: string) => void;
   isGenerating: boolean;
   thinkingSteps: (ThinkingStepType & { duration?: string })[];
 }
 
-export function ChatMessages({ messages, onRateMessage, isGenerating, thinkingSteps }: ChatMessagesProps) {
+export function ChatMessages({ messages, onRateMessage, onCommentMessage, isGenerating, thinkingSteps }: ChatMessagesProps) {
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
   const viewportRef = React.useRef<HTMLDivElement>(null);
 
@@ -29,7 +30,12 @@ export function ChatMessages({ messages, onRateMessage, isGenerating, thinkingSt
     <ScrollArea className="flex-1" ref={scrollAreaRef} viewportRef={viewportRef}>
       <div className="p-4 space-y-4">
         {messages.map((message) => (
-          <ChatMessage key={message.id} message={message} onRateMessage={onRateMessage} />
+          <ChatMessage 
+            key={message.id} 
+            message={message} 
+            onRateMessage={onRateMessage} 
+            onCommentMessage={onCommentMessage}
+          />
         ))}
         
         {isGenerating && thinkingSteps.length > 0 && (

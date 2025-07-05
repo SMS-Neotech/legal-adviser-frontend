@@ -11,6 +11,7 @@ import {
   SidebarTrigger,
   SidebarContent,
   SidebarFooter,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { ConversationList } from "@/components/chat/conversation-list";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -126,6 +127,7 @@ export default function Home() {
     if (!content.trim()) return;
 
     let conversationId = activeConversationId;
+    let currentConversations = conversations;
     let isNewChat = !conversationId || (activeConversation && activeConversation.messages.length === 0);
 
     if (isNewChat) {
@@ -136,20 +138,25 @@ export default function Home() {
         messages: [],
         createdAt: Date.now(),
       };
-      setConversations(prev => [newConversation, ...prev.filter(c => c.messages.length > 0)]);
+      // Add the new conversation to the beginning of the list
+      const updatedConversations = [newConversation, ...conversations.filter(c => c.messages.length > 0)];
+      setConversations(updatedConversations);
+      currentConversations = updatedConversations;
       setActiveConversationId(newConversationId);
       conversationId = newConversationId;
     }
     
     const userMessage: Message = { id: uuidv4(), role: 'user', content };
     const assistantMessage: Message = { id: uuidv4(), role: "assistant", content: "" };
-
-    setConversations(prev => prev.map(c => 
-      c.id === conversationId 
-        ? { ...c, messages: [...c.messages, userMessage, assistantMessage] } 
-        : c
-    ));
-
+    
+    // Add messages to the conversation
+    const updatedConversationsWithMessages = currentConversations.map(c => 
+        c.id === conversationId 
+            ? { ...c, messages: [...c.messages, userMessage, assistantMessage] } 
+            : c
+    );
+    setConversations(updatedConversationsWithMessages);
+    
     setIsGenerating(true);
     setThinkingSteps([]);
 
@@ -257,6 +264,17 @@ export default function Home() {
     ));
   };
 
+  const handleCommentMessage = (messageId: string, comment: string) => {
+    if (!activeConversation) return;
+    const updatedMessages = activeConversation.messages.map(m =>
+      m.id === messageId ? { ...m, comment } : m
+    );
+    const updatedConversation = { ...activeConversation, messages: updatedMessages };
+    setConversations(conversations.map((c) =>
+      c.id === activeConversationId ? updatedConversation : c
+    ));
+  };
+
   React.useEffect(() => {
     const validConversations = conversations.filter(c => c.messages.length > 0);
     if (!activeConversationId && validConversations.length > 0) {
@@ -314,6 +332,7 @@ export default function Home() {
             <ChatMessages 
               messages={activeConversation.messages} 
               onRateMessage={handleRateMessage} 
+              onCommentMessage={handleCommentMessage}
               isGenerating={isGenerating} 
               thinkingSteps={thinkingSteps} 
             />

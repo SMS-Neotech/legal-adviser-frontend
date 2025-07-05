@@ -3,6 +3,7 @@ export type Message = {
   role: 'user' | 'assistant';
   content: string;
   rating?: number;
+  comment?: string;
 };
 
 export type Conversation = {
