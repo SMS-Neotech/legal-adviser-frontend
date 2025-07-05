@@ -60,7 +60,7 @@ export function ChatMessage({ message, isLastMessage, isGenerating, onRateMessag
 
   return (
     <div className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}>
-        <div className={cn("flex gap-4", isUser ? "flex-row-reverse" : "flex-row items-start")}>
+        <div className={cn("flex gap-4", isUser ? "flex-row-reverse items-end" : "flex-row items-start")}>
             <Avatar className="w-8 h-8 border">
                 <AvatarFallback>{isUser ? <User /> : <Gavel />}</AvatarFallback>
             </Avatar>
