@@ -1,8 +1,8 @@
 {
   "loading": "लोड हुँदैछ...",
   "loadingExperience": "तपाईंको अनुभव लोड हुँदैछ...",
-  "legalAdvisor": "कानूनी सल्लाहकार",
-  "welcomeToLegalAdvisor": "कानूनी सल्लाहकारमा स्वागत छ",
+  "legalAdvisor": "कानूनी सल्लाहकार , ABC",
+  "welcomeToLegalAdvisor": "कानूनी सल्लाहकार , ABC मा स्वागत छ",
   "signInToContinue": "आफ्नो व्यक्तिगत कानूनी सहायकमा जारी राख्न साइन इन गर्नुहोस्।",
   "firebaseNotConfigured": "फायरबेस कन्फिगर गरिएको छैन",
   "firebaseNotConfiguredMessage": "प्रमाणीकरण सक्षम गर्न कृपया आफ्नो फायरबेस प्रमाणहरू `.env` फाइलमा थप्नुहोस्।",

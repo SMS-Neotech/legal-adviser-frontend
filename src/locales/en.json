@@ -1,8 +1,8 @@
 {
   "loading": "Loading...",
   "loadingExperience": "Loading your experience...",
-  "legalAdvisor": "Legal Advisor",
-  "welcomeToLegalAdvisor": "Welcome to Legal Advisor",
+  "legalAdvisor": "Legal Advisor , ABC",
+  "welcomeToLegalAdvisor": "Welcome to Legal Advisor , ABC",
   "signInToContinue": "Sign in to continue to your personal legal assistant.",
   "firebaseNotConfigured": "Firebase Not Configured",
   "firebaseNotConfiguredMessage": "Please add your Firebase credentials to the `.env` file to enable authentication.",

@@ -9,7 +9,7 @@ import { LanguageProvider } from '@/components/language-provider';
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
-  title: 'Legal Advisor',
+  title: 'Legal Advisor , ABC',
   description: 'A chat application for legal documents.',
 };
 
