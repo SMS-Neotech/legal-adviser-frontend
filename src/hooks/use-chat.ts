@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useCompletion } from 'ai/react';
 import { type ThinkingStep } from '@/lib/api-types';
 
@@ -10,7 +11,7 @@ export function useChat(options: any) {
   
   const {
     messages,
-    setMessages,
+    setMessages: setCompletionMessages,
     input,
     setInput,
     handleInputChange,
@@ -28,6 +29,8 @@ export function useChat(options: any) {
         thinkingStepsRef.current = [];
     }
   });
+
+  const setMessages = useCallback(setCompletionMessages, [setCompletionMessages]);
 
   // The 'useCompletion' hook returns a stream that can have a mix of regular text
   // and JSON objects. We need to process this stream to extract the thinking steps
