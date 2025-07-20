@@ -33,6 +33,10 @@ export function useChat(options: any) {
   });
 
   const processedMessages = useMemo(() => {
+    if (!messages || messages.length === 0) {
+      return [];
+    }
+
     let finalContent = '';
     const lastMessage = messages[messages.length - 1];
     
