@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -37,6 +38,9 @@
     --sidebar-accent-foreground: 0 0% 12%;
     --sidebar-border: 0 0% 90%;
     --sidebar-ring: 222 93% 59%;
+    --legal-primary: 210 80% 50%;
+    --legal-secondary: 260 80% 60%;
+    --legal-dark: 220 15% 15%;
   }
 
   .dark {
@@ -72,6 +76,9 @@
     --sidebar-accent-foreground: 0 0% 92%;
     --sidebar-border: 0 0% 20%;
     --sidebar-ring: 222 93% 59%;
+    --legal-primary: 210 80% 55%;
+    --legal-secondary: 260 80% 65%;
+    --legal-dark: 220 15% 15%;
   }
 }
 
@@ -83,3 +90,5 @@
     @apply bg-background text-foreground;
   }
 }
+
+    
