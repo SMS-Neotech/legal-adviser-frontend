@@ -33,7 +33,7 @@ export function useChat(options: any) {
   // and JSON objects. We need to process this stream to extract the thinking steps
   // and the final assistant message.
   useEffect(() => {
-    if (messages.length === 0) return;
+    if (!messages || messages.length === 0) return;
     const lastMessage = messages[messages.length - 1];
     if (lastMessage.role === 'assistant' && lastMessage.content) {
         const parts = lastMessage.content.split(/(?=\{.*?\})|(?<=}.*?)/g).filter(Boolean);
