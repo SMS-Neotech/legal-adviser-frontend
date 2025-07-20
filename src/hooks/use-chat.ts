@@ -11,7 +11,7 @@ export function useChat(options: any) {
   
   const {
     messages,
-    setMessages: setCompletionMessages,
+    setMessages,
     input,
     setInput,
     handleInputChange,
@@ -29,8 +29,6 @@ export function useChat(options: any) {
         thinkingStepsRef.current = [];
     }
   });
-
-  const setMessages = useCallback(setCompletionMessages, [setCompletionMessages]);
 
   // The 'useCompletion' hook returns a stream that can have a mix of regular text
   // and JSON objects. We need to process this stream to extract the thinking steps

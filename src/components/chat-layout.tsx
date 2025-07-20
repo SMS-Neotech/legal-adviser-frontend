@@ -89,7 +89,7 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
   
   const {
     messages,
-    setMessages,
+    setMessages: setChatMessages,
     input,
     setInput,
     handleInputChange,
@@ -141,9 +141,9 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
   );
 
   useEffect(() => {
-    setMessages(activeConversation?.messages || []);
+    setChatMessages(activeConversation?.messages || []);
     setInput('');
-  }, [activeConversationId, setMessages, setInput]);
+  }, [activeConversationId, setChatMessages, setInput]);
 
   const handleNewConversation = async () => {
     stop();
@@ -195,7 +195,7 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
       m.id === messageId ? { ...m, rating } : m
     );
     
-    setMessages(updatedMessages);
+    setChatMessages(updatedMessages);
     await updateConversation(user.uid, activeConversation.id, { messages: updatedMessages });
   };
 
@@ -206,7 +206,7 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
       m.id === messageId ? { ...m, comment } : m
     );
     
-    setMessages(updatedMessages);
+    setChatMessages(updatedMessages);
     await updateConversation(user.uid, activeConversation.id, { messages: updatedMessages });
   };
 
@@ -214,14 +214,14 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
      setInput(message.content);
      chatInputRef.current?.focus();
      // Remove last user message
-     setMessages(messages.slice(0, -1));
+     setChatMessages(messages.slice(0, -1));
   };
   
   const handleRegenerateResponse = () => {
       const lastUserMessage = messages.findLast(m => m.role === 'user');
       if (lastUserMessage) {
         const messagesWithoutLastAssistantResponse = messages.filter(m => m.role !== 'assistant');
-        setMessages(messagesWithoutLastAssistantResponse);
+        setChatMessages(messagesWithoutLastAssistantResponse);
         handleSubmit(new Event('submit') as unknown as React.FormEvent<HTMLFormElement>, {
             options: {
                 body: {
@@ -257,10 +257,10 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
         setConversations(prev => [newConversation, ...prev]);
         setActiveConversationId(newConvId);
         currentConversationId = newConvId;
-        setMessages([newUserMessage]);
+        setChatMessages([newUserMessage]);
     } else {
         const updatedMessages = [...(activeConversation?.messages || []), newUserMessage];
-        setMessages(updatedMessages);
+        setChatMessages(updatedMessages);
         await updateConversation(user.uid, currentConversationId, { messages: updatedMessages });
     }
     
