@@ -35,6 +35,7 @@ import {
 import { generateConversationTitle } from '@/ai/flows/generate-conversation-title';
 import { Logo } from '@/components/icons';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import type { UseChatOptions } from 'ai/react';
 
 interface ChatLayoutProps {
   user: User;
@@ -84,12 +85,46 @@ function ChatHeader() {
 export default function ChatLayout({ user }: ChatLayoutProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isLoadingConversations, setIsLoadingConversations] = useState(true);
   const [isRenaming, setIsRenaming] = useState(false);
   
+  const activeConversation = conversations.find(
+    (c) => c.id === activeConversationId
+  );
+
+  const onFinish = async (message: Message) => {
+    if (activeConversationId) {
+        const activeConv = conversations.find(c => c.id === activeConversationId);
+        if (activeConv) {
+            const finalUserMessage = messages[messages.length-1];
+            const updatedMessages = [...activeConv.messages, finalUserMessage, message];
+            await updateConversation(user.uid, activeConversationId, { messages: updatedMessages });
+            
+            if (activeConv.messages.length === 0) {
+               const history = `User: ${finalUserMessage.content}\nAssistant: ${message.content}`;
+               try {
+                    const { title } = await generateConversationTitle({ conversationHistory: history });
+                    if (title) {
+                        await updateConversation(user.uid, activeConversationId, { title });
+                        setConversations(prev => prev.map(c => c.id === activeConversationId ? { ...c, title } : c));
+                    }
+               } catch (e) {
+                   console.error("Error generating title: ", e);
+               }
+            }
+        }
+    }
+  };
+
+  const chatOptions: UseChatOptions = {
+    api: '/api/chat',
+    initialMessages: messages,
+    onFinish,
+  };
+
   const {
-    messages,
-    setMessages,
+    messages: liveMessages,
     input,
     setInput,
     handleInputChange,
@@ -97,34 +132,12 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
     isLoading: isGenerating,
     stop,
     thinkingSteps,
-  } = useChat({
-    api: '/api/chat',
-    onFinish: async (message) => {
-        if (activeConversationId) {
-            const activeConversation = conversations.find(c => c.id === activeConversationId);
-            if (activeConversation) {
-                const finalMessages = Array.from(messages);
-                finalMessages.push(message);
+  } = useChat(chatOptions);
 
-                const updatedMessages = [...activeConversation.messages, { role: 'user', content: input, id: uuidv4(), createdAt: Date.now() }, { role: 'assistant', content: message.content, id: message.id, createdAt: message.createdAt }];
-                await updateConversation(user.uid, activeConversationId, { messages: updatedMessages });
-                
-                if (activeConversation.messages.length === 0) {
-                   const history = `User: ${input}\nAssistant: ${message.content}`;
-                   try {
-                        const { title } = await generateConversationTitle({ conversationHistory: history });
-                        if (title) {
-                            await updateConversation(user.uid, activeConversationId, { title });
-                            setConversations(prev => prev.map(c => c.id === activeConversationId ? { ...c, title } : c));
-                        }
-                   } catch (e) {
-                       console.error("Error generating title: ", e);
-                   }
-                }
-            }
-        }
-    },
-  });
+  useEffect(() => {
+    setMessages(liveMessages as Message[]);
+  }, [liveMessages]);
+
 
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -139,13 +152,11 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
     fetchConversations();
   }, [fetchConversations]);
 
-  const activeConversation = conversations.find(
-    (c) => c.id === activeConversationId
-  );
 
   useEffect(() => {
-    setMessages(activeConversation?.messages || []);
-  }, [activeConversationId, setMessages]);
+    const conversation = conversations.find(c => c.id === activeConversationId);
+    setMessages(conversation?.messages || []);
+  }, [activeConversationId, conversations]);
 
   const handleNewConversation = async () => {
     stop();
@@ -174,7 +185,6 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
     setConversations(remainingConversations);
     if (activeConversationId === id) {
       setActiveConversationId(null);
-      setMessages([]);
     }
   };
 
@@ -196,7 +206,7 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
   const handleRateMessage = async (messageId: string, rating: number) => {
     if (!activeConversation) return;
 
-    const updatedMessages = activeConversation.messages.map(m =>
+    const updatedMessages = messages.map(m =>
       m.id === messageId ? { ...m, rating } : m
     );
     
@@ -207,7 +217,7 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
   const handleCommentMessage = async (messageId: string, comment: string) => {
     if (!activeConversation) return;
     
-    const updatedMessages = activeConversation.messages.map(m =>
+    const updatedMessages = messages.map(m =>
       m.id === messageId ? { ...m, comment } : m
     );
     
@@ -218,21 +228,24 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
   const handleEditMessage = (message: Message) => {
      setInput(message.content);
      chatInputRef.current?.focus();
-     setMessages(messages.slice(0, -1));
+     setMessages(messages.slice(0, messages.findIndex(m => m.id === message.id)));
   };
   
   const handleRegenerateResponse = () => {
       const lastUserMessage = messages.findLast(m => m.role === 'user');
       if (lastUserMessage) {
-        const messagesWithoutLastAssistantResponse = messages.filter(m => m.role !== 'assistant');
-        setMessages(messagesWithoutLastAssistantResponse);
-        handleSubmit(new Event('submit') as unknown as React.FormEvent<HTMLFormElement>, {
+        const messagesToResend = messages.filter(m => m.role !== 'assistant');
+        setMessages(messagesToResend);
+        
+        const form = document.createElement('form');
+        form.onsubmit = (e) => handleSubmit(e, {
             options: {
                 body: {
                     message: lastUserMessage.content
                 }
             }
         });
+        form.requestSubmit();
       }
   };
 
@@ -245,15 +258,7 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
     e.preventDefault();
     if (!input.trim() || isGenerating) return;
 
-    const newUserMessage: Message = {
-      id: uuidv4(),
-      role: 'user',
-      content: input.trim(),
-      createdAt: Date.now(),
-    };
-
     let currentConversationId = activeConversationId;
-    let conversationToUpdate: Conversation | undefined;
     
     if (!currentConversationId) {
         const newConvId = uuidv4();
@@ -267,16 +272,6 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
         setConversations(prev => [newConversation, ...prev]);
         setActiveConversationId(newConvId);
         currentConversationId = newConvId;
-        conversationToUpdate = newConversation;
-    } else {
-        conversationToUpdate = activeConversation;
-    }
-
-    setMessages([...messages, newUserMessage]);
-    
-    if(conversationToUpdate) {
-        const updatedMessages = [...(conversationToUpdate.messages || []), newUserMessage];
-        await updateConversation(user.uid, currentConversationId, { messages: updatedMessages });
     }
     
     handleSubmit(e, {

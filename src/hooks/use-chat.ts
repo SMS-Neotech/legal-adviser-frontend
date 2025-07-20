@@ -1,25 +1,18 @@
 
 'use client';
 
-import { useState, useRef, useEffect, useMemo } from 'react';
-import { useCompletion } from 'ai/react';
+import { useState, useRef, useMemo, useEffect } from 'react';
+import { useCompletion, type UseChatOptions } from 'ai/react';
 import { type ThinkingStep } from '@/lib/api-types';
-import { type Message } from '@/lib/types';
 
-export function useChat(options: any) {
+export function useChat(options: UseChatOptions) {
   const [thinkingSteps, setThinkingSteps] = useState<ThinkingStep[]>([]);
   const thinkingStepsRef = useRef<ThinkingStep[]>([]);
 
   const {
     messages,
-    setMessages,
-    input,
-    setInput,
-    handleInputChange,
-    handleSubmit,
-    isLoading,
-    stop,
     completion,
+    ...rest
   } = useCompletion({
     ...options,
     onResponse: () => {
@@ -40,7 +33,7 @@ export function useChat(options: any) {
     let finalContent = '';
     const lastMessage = messages[messages.length - 1];
     
-    if (isLoading && lastMessage?.role === 'assistant') {
+    if (rest.isLoading && lastMessage?.role === 'assistant') {
       const parts = lastMessage.content.split(/(?=\{.*?\})|(?<=}.*?)/g).filter(Boolean);
       let hasUpdatedThinkingSteps = false;
 
@@ -69,27 +62,21 @@ export function useChat(options: any) {
         ...lastMessage,
         content: finalContent
       };
-      return updatedMessages as Message[];
+      return updatedMessages;
     }
-    return messages as Message[];
-  }, [messages, isLoading]);
-
+    return messages;
+  }, [messages, rest.isLoading]);
+  
   useEffect(() => {
-    if (!isLoading) {
+    if (!rest.isLoading) {
       thinkingStepsRef.current = [];
       setThinkingSteps([]);
     }
-  }, [isLoading]);
+  }, [rest.isLoading]);
 
   return {
     messages: processedMessages,
-    setMessages,
-    input,
-    setInput,
-    handleInputChange,
-    handleSubmit,
-    isLoading,
-    stop,
-    thinkingSteps
+    thinkingSteps,
+    ...rest
   };
 }
