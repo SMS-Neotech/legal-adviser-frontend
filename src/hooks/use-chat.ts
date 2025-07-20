@@ -1,28 +1,27 @@
 
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useCompletion } from 'ai/react';
-import { type Message } from '@/lib/types';
 import { type ThinkingStep } from '@/lib/api-types';
+import { type Message } from '@/lib/types';
 
 export function useChat(options: any) {
   const [thinkingSteps, setThinkingSteps] = useState<ThinkingStep[]>([]);
   const thinkingStepsRef = useRef<ThinkingStep[]>([]);
-  const [chatMessages, setChatMessages] = useState<Message[]>([]);
 
   const {
-    messages: completionMessages,
-    setMessages: setCompletionMessages,
+    messages,
+    setMessages,
     input,
     setInput,
     handleInputChange,
     handleSubmit,
     isLoading,
     stop,
+    completion,
   } = useCompletion({
     ...options,
-    initialInput: options.initialInput,
     onResponse: () => {
       thinkingStepsRef.current = [];
       setThinkingSteps([]);
@@ -33,62 +32,54 @@ export function useChat(options: any) {
     }
   });
 
-  // Effect to sync our internal chatMessages with the library's completionMessages
-  useEffect(() => {
-    setChatMessages(completionMessages as Message[]);
-  }, [completionMessages]);
+  const processedMessages = useMemo(() => {
+    let finalContent = '';
+    const lastMessage = messages[messages.length - 1];
+    
+    if (isLoading && lastMessage?.role === 'assistant') {
+      const parts = lastMessage.content.split(/(?=\{.*?\})|(?<=}.*?)/g).filter(Boolean);
+      let hasUpdatedThinkingSteps = false;
 
-
-  // The 'useCompletion' hook returns a stream that can have a mix of regular text
-  // and JSON objects. We need to process this stream to extract the thinking steps
-  // and the final assistant message.
-  useEffect(() => {
-    if (!chatMessages || chatMessages.length === 0) return;
-    const lastMessage = chatMessages[chatMessages.length - 1];
-    if (lastMessage.role === 'assistant' && lastMessage.content) {
-        const parts = lastMessage.content.split(/(?=\{.*?\})|(?<=}.*?)/g).filter(Boolean);
-        let currentContent = '';
-        let hasUpdatedThinkingSteps = false;
-        
-        parts.forEach(part => {
-            try {
-                const json = JSON.parse(part);
-                if (json.step && json.message) {
-                    const existingStepIndex = thinkingStepsRef.current.findIndex(s => s.step === json.step);
-                    if (existingStepIndex > -1) {
-                        thinkingStepsRef.current[existingStepIndex] = json;
-                    } else {
-                        thinkingStepsRef.current.push(json);
-                    }
-                    hasUpdatedThinkingSteps = true;
-                }
-            } catch (e) {
-                currentContent += part;
+      parts.forEach(part => {
+        try {
+          const json = JSON.parse(part);
+          if (json.step && json.message) {
+            const existingStepIndex = thinkingStepsRef.current.findIndex(s => s.step === json.step);
+            if (existingStepIndex > -1) {
+              thinkingStepsRef.current[existingStepIndex] = json;
+            } else {
+              thinkingStepsRef.current.push(json);
             }
-        });
-
-        if (hasUpdatedThinkingSteps) {
-             setThinkingSteps([...thinkingStepsRef.current]);
+            hasUpdatedThinkingSteps = true;
+          }
+        } catch (e) {
+          finalContent += part;
         }
-        
-        // This prevents an infinite loop by only updating if the content has actually changed
-        if (currentContent.trim() !== lastMessage.content.trim()) {
-            setChatMessages(prevMessages => {
-                const newMessages = [...prevMessages];
-                newMessages[newMessages.length - 1] = {
-                    ...lastMessage,
-                    content: currentContent,
-                };
-                return newMessages;
-            });
-        }
+      });
+      if (hasUpdatedThinkingSteps) {
+        setThinkingSteps([...thinkingStepsRef.current]);
+      }
+      
+      const updatedMessages = [...messages];
+      updatedMessages[updatedMessages.length - 1] = {
+        ...lastMessage,
+        content: finalContent
+      };
+      return updatedMessages as Message[];
     }
-  }, [chatMessages]);
+    return messages as Message[];
+  }, [messages, isLoading]);
 
+  useEffect(() => {
+    if (!isLoading) {
+      thinkingStepsRef.current = [];
+      setThinkingSteps([]);
+    }
+  }, [isLoading]);
 
   return {
-    messages: chatMessages,
-    setMessages: setCompletionMessages, // Provide the stable function to set the library's state
+    messages: processedMessages,
+    setMessages,
     input,
     setInput,
     handleInputChange,

@@ -19,7 +19,7 @@ import { ChatMessages } from '@/components/chat/chat-messages';
 import { ChatInput } from '@/components/chat/chat-input';
 import { ChatWelcome } from '@/components/chat/chat-welcome';
 import { Button } from '@/components/ui/button';
-import { LogOut, Languages } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { LanguageToggle } from '@/components/language-toggle';
 import { type Conversation, type Message } from '@/lib/types';
@@ -89,7 +89,7 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
   
   const {
     messages,
-    setMessages: setChatMessages,
+    setMessages,
     input,
     setInput,
     handleInputChange,
@@ -103,11 +103,14 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
         if (activeConversationId) {
             const activeConversation = conversations.find(c => c.id === activeConversationId);
             if (activeConversation) {
-                const updatedMessages = [...activeConversation.messages, { role: 'assistant', content: message.content, id: message.id, createdAt: message.createdAt }];
+                const finalMessages = Array.from(messages);
+                finalMessages.push(message);
+
+                const updatedMessages = [...activeConversation.messages, { role: 'user', content: input, id: uuidv4(), createdAt: Date.now() }, { role: 'assistant', content: message.content, id: message.id, createdAt: message.createdAt }];
                 await updateConversation(user.uid, activeConversationId, { messages: updatedMessages });
                 
-                if (activeConversation.messages.length === 1) { // It was 0, now it's 1 (the user's first message) + the response, but we only have `message`
-                   const history = `User: ${activeConversation.messages[0].content}\nAssistant: ${message.content}`;
+                if (activeConversation.messages.length === 0) {
+                   const history = `User: ${input}\nAssistant: ${message.content}`;
                    try {
                         const { title } = await generateConversationTitle({ conversationHistory: history });
                         if (title) {
@@ -141,9 +144,8 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
   );
 
   useEffect(() => {
-    setChatMessages(activeConversation?.messages || []);
-    setInput('');
-  }, [activeConversationId, setChatMessages, setInput]);
+    setMessages(activeConversation?.messages || []);
+  }, [activeConversationId, setMessages]);
 
   const handleNewConversation = async () => {
     stop();
@@ -157,6 +159,7 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
     await addConversationWithId(user.uid, newConversation);
     setConversations([newConversation, ...conversations]);
     setActiveConversationId(newConversationId);
+    setInput('');
     chatInputRef.current?.focus();
   };
 
@@ -167,9 +170,11 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
   
   const handleDeleteConversation = async (id: string) => {
     await deleteConversation(user.uid, id);
-    setConversations(conversations.filter((c) => c.id !== id));
+    const remainingConversations = conversations.filter((c) => c.id !== id);
+    setConversations(remainingConversations);
     if (activeConversationId === id) {
       setActiveConversationId(null);
+      setMessages([]);
     }
   };
 
@@ -195,7 +200,7 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
       m.id === messageId ? { ...m, rating } : m
     );
     
-    setChatMessages(updatedMessages);
+    setMessages(updatedMessages);
     await updateConversation(user.uid, activeConversation.id, { messages: updatedMessages });
   };
 
@@ -206,22 +211,21 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
       m.id === messageId ? { ...m, comment } : m
     );
     
-    setChatMessages(updatedMessages);
+    setMessages(updatedMessages);
     await updateConversation(user.uid, activeConversation.id, { messages: updatedMessages });
   };
 
   const handleEditMessage = (message: Message) => {
      setInput(message.content);
      chatInputRef.current?.focus();
-     // Remove last user message
-     setChatMessages(messages.slice(0, -1));
+     setMessages(messages.slice(0, -1));
   };
   
   const handleRegenerateResponse = () => {
       const lastUserMessage = messages.findLast(m => m.role === 'user');
       if (lastUserMessage) {
         const messagesWithoutLastAssistantResponse = messages.filter(m => m.role !== 'assistant');
-        setChatMessages(messagesWithoutLastAssistantResponse);
+        setMessages(messagesWithoutLastAssistantResponse);
         handleSubmit(new Event('submit') as unknown as React.FormEvent<HTMLFormElement>, {
             options: {
                 body: {
@@ -232,7 +236,12 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
       }
   };
 
- const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handlePrompt = (prompt: string) => {
+      setInput(prompt);
+      chatInputRef.current?.focus();
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!input.trim() || isGenerating) return;
 
@@ -244,26 +253,39 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
     };
 
     let currentConversationId = activeConversationId;
-
+    let conversationToUpdate: Conversation | undefined;
+    
     if (!currentConversationId) {
         const newConvId = uuidv4();
         const newConversation: Conversation = {
             id: newConvId,
             title: input.trim().substring(0, 30),
-            messages: [newUserMessage],
+            messages: [],
             createdAt: Date.now(),
         };
         await addConversationWithId(user.uid, newConversation);
         setConversations(prev => [newConversation, ...prev]);
         setActiveConversationId(newConvId);
-        setChatMessages([newUserMessage]);
+        currentConversationId = newConvId;
+        conversationToUpdate = newConversation;
     } else {
-        const updatedMessages = [...(activeConversation?.messages || []), newUserMessage];
-        setChatMessages(updatedMessages);
+        conversationToUpdate = activeConversation;
+    }
+
+    setMessages([...messages, newUserMessage]);
+    
+    if(conversationToUpdate) {
+        const updatedMessages = [...(conversationToUpdate.messages || []), newUserMessage];
         await updateConversation(user.uid, currentConversationId, { messages: updatedMessages });
     }
     
-    handleSubmit(e);
+    handleSubmit(e, {
+        options: {
+            body: {
+                message: input.trim(),
+            }
+        }
+    });
   };
 
   return (
@@ -315,7 +337,7 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
               </form>
             </>
           ) : (
-            <ChatWelcome onNewConversation={handleNewConversation} onPrompt={setInput} />
+            <ChatWelcome onNewConversation={handleNewConversation} onPrompt={handlePrompt} />
           )}
         </div>
       </SidebarInset>
