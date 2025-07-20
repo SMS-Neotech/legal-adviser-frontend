@@ -256,7 +256,6 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
         await addConversationWithId(user.uid, newConversation);
         setConversations(prev => [newConversation, ...prev]);
         setActiveConversationId(newConvId);
-        currentConversationId = newConvId;
         setChatMessages([newUserMessage]);
     } else {
         const updatedMessages = [...(activeConversation?.messages || []), newUserMessage];

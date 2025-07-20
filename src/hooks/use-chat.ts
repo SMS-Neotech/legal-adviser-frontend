@@ -3,15 +3,17 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useCompletion } from 'ai/react';
+import { type Message } from '@/lib/types';
 import { type ThinkingStep } from '@/lib/api-types';
 
 export function useChat(options: any) {
   const [thinkingSteps, setThinkingSteps] = useState<ThinkingStep[]>([]);
   const thinkingStepsRef = useRef<ThinkingStep[]>([]);
-  
+  const [chatMessages, setChatMessages] = useState<Message[]>([]);
+
   const {
-    messages,
-    setMessages,
+    messages: completionMessages,
+    setMessages: setCompletionMessages,
     input,
     setInput,
     handleInputChange,
@@ -20,22 +22,29 @@ export function useChat(options: any) {
     stop,
   } = useCompletion({
     ...options,
+    initialInput: options.initialInput,
     onResponse: () => {
       thinkingStepsRef.current = [];
       setThinkingSteps([]);
     },
     onFinish: (message) => {
-        options.onFinish?.(message);
-        thinkingStepsRef.current = [];
+      options.onFinish?.(message);
+      thinkingStepsRef.current = [];
     }
   });
+
+  // Effect to sync our internal chatMessages with the library's completionMessages
+  useEffect(() => {
+    setChatMessages(completionMessages as Message[]);
+  }, [completionMessages]);
+
 
   // The 'useCompletion' hook returns a stream that can have a mix of regular text
   // and JSON objects. We need to process this stream to extract the thinking steps
   // and the final assistant message.
   useEffect(() => {
-    if (!messages || messages.length === 0) return;
-    const lastMessage = messages[messages.length - 1];
+    if (!chatMessages || chatMessages.length === 0) return;
+    const lastMessage = chatMessages[chatMessages.length - 1];
     if (lastMessage.role === 'assistant' && lastMessage.content) {
         const parts = lastMessage.content.split(/(?=\{.*?\})|(?<=}.*?)/g).filter(Boolean);
         let currentContent = '';
@@ -61,9 +70,10 @@ export function useChat(options: any) {
         if (hasUpdatedThinkingSteps) {
              setThinkingSteps([...thinkingStepsRef.current]);
         }
-
-        if (currentContent.trim() !== '') {
-            setMessages(prevMessages => {
+        
+        // This prevents an infinite loop by only updating if the content has actually changed
+        if (currentContent.trim() !== lastMessage.content.trim()) {
+            setChatMessages(prevMessages => {
                 const newMessages = [...prevMessages];
                 newMessages[newMessages.length - 1] = {
                     ...lastMessage,
@@ -72,14 +82,13 @@ export function useChat(options: any) {
                 return newMessages;
             });
         }
-
     }
-  }, [messages, setMessages]);
+  }, [chatMessages]);
 
 
   return {
-    messages,
-    setMessages,
+    messages: chatMessages,
+    setMessages: setCompletionMessages, // Provide the stable function to set the library's state
     input,
     setInput,
     handleInputChange,
