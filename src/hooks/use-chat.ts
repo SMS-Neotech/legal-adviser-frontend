@@ -1,9 +1,10 @@
 
 'use client';
 
-import { useState, useRef, useMemo, useEffect } from 'react';
-import { useCompletion, type UseChatOptions } from 'ai/react';
+import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
+import { useCompletion, useChat as useVercelChat, type UseChatOptions } from 'ai/react';
 import { type ThinkingStep } from '@/lib/api-types';
+import { type Message } from '@/lib/types';
 
 export function useChat(options: UseChatOptions) {
   const [thinkingSteps, setThinkingSteps] = useState<ThinkingStep[]>([]);
@@ -11,29 +12,18 @@ export function useChat(options: UseChatOptions) {
 
   const {
     messages,
-    completion,
+    setMessages,
     ...rest
-  } = useCompletion({
-    ...options,
-    onResponse: () => {
-      thinkingStepsRef.current = [];
-      setThinkingSteps([]);
-    },
-    onFinish: (message) => {
-      options.onFinish?.(message);
-      thinkingStepsRef.current = [];
-    }
-  });
+  } = useVercelChat(options);
 
   const processedMessages = useMemo(() => {
     if (!messages || messages.length === 0) {
       return [];
     }
 
-    let finalContent = '';
     const lastMessage = messages[messages.length - 1];
-    
     if (rest.isLoading && lastMessage?.role === 'assistant') {
+      let finalContent = '';
       const parts = lastMessage.content.split(/(?=\{.*?\})|(?<=}.*?)/g).filter(Boolean);
       let hasUpdatedThinkingSteps = false;
 
@@ -76,6 +66,7 @@ export function useChat(options: UseChatOptions) {
 
   return {
     messages: processedMessages,
+    setMessages,
     thinkingSteps,
     ...rest
   };

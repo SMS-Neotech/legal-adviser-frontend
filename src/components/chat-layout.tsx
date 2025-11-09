@@ -19,7 +19,7 @@ import { ChatMessages } from '@/components/chat/chat-messages';
 import { ChatInput } from '@/components/chat/chat-input';
 import { ChatWelcome } from '@/components/chat/chat-welcome';
 import { Button } from '@/components/ui/button';
-import { LogOut } from 'lucide-react';
+import { LogOut, BrainCircuit, Binary, CircuitBoard } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { LanguageToggle } from '@/components/language-toggle';
 import { type Conversation, type Message } from '@/lib/types';
@@ -32,10 +32,9 @@ import {
   updateConversation,
   deleteConversation,
 } from '@/lib/firestore';
-import { generateConversationTitle } from '@/ai/flows/generate-conversation-title';
-import { Logo } from '@/components/icons';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import type { UseChatOptions } from 'ai/react';
+import { motion } from 'framer-motion';
 
 interface ChatLayoutProps {
   user: User;
@@ -68,11 +67,15 @@ function UserProfile({ user }: { user: User }) {
 function ChatHeader() {
   const { isMobile } = useSidebar();
   return (
-    <header className="flex h-14 items-center gap-4 border-b bg-background px-4">
-      {isMobile && <SidebarTrigger />}
-      <div className="flex items-center gap-2">
-        <Logo className="size-6 shrink-0" />
-        <h1 className="text-sm font-semibold">Legal Advisor , ABC</h1>
+    <header className="bg-[#0a0e17]/90 border-b border-[#1a2436] p-4 flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        {isMobile && <SidebarTrigger />}
+        <div className="bg-gradient-to-r from-[#00f5d4] to-[#00bbf9] p-2 rounded-lg">
+            <CircuitBoard className="h-6 w-6 text-white" />
+        </div>
+        <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#00f5d4] to-[#00bbf9]">
+            NEPALI LEGAL ADVISOR
+        </h1>
       </div>
       <div className="ml-auto flex items-center gap-2">
         <LanguageToggle />
@@ -85,7 +88,6 @@ function ChatHeader() {
 export default function ChatLayout({ user }: ChatLayoutProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
   const [isLoadingConversations, setIsLoadingConversations] = useState(true);
   const [isRenaming, setIsRenaming] = useState(false);
   
@@ -98,33 +100,15 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
         const activeConv = conversations.find(c => c.id === activeConversationId);
         if (activeConv) {
             const finalUserMessage = messages[messages.length-1];
-            const updatedMessages = [...activeConv.messages, finalUserMessage, message];
+            const updatedMessages = [...(activeConv.messages || []), finalUserMessage, message];
             await updateConversation(user.uid, activeConversationId, { messages: updatedMessages });
-            
-            if (activeConv.messages.length === 0) {
-               const history = `User: ${finalUserMessage.content}\nAssistant: ${message.content}`;
-               try {
-                    const { title } = await generateConversationTitle({ conversationHistory: history });
-                    if (title) {
-                        await updateConversation(user.uid, activeConversationId, { title });
-                        setConversations(prev => prev.map(c => c.id === activeConversationId ? { ...c, title } : c));
-                    }
-               } catch (e) {
-                   console.error("Error generating title: ", e);
-               }
-            }
         }
     }
   };
 
-  const chatOptions: UseChatOptions = {
-    api: '/api/chat',
-    initialMessages: messages,
-    onFinish,
-  };
-
   const {
-    messages: liveMessages,
+    messages,
+    setMessages,
     input,
     setInput,
     handleInputChange,
@@ -132,11 +116,11 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
     isLoading: isGenerating,
     stop,
     thinkingSteps,
-  } = useChat(chatOptions);
+  } = useChat({onFinish});
 
   useEffect(() => {
-    setMessages(liveMessages as Message[]);
-  }, [liveMessages]);
+    setMessages(activeConversation?.messages || []);
+  }, [activeConversationId, activeConversation?.messages, setMessages]);
 
 
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
@@ -152,12 +136,6 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
     fetchConversations();
   }, [fetchConversations]);
 
-
-  useEffect(() => {
-    const conversation = conversations.find(c => c.id === activeConversationId);
-    setMessages(conversation?.messages || []);
-  }, [activeConversationId, conversations]);
-
   const handleNewConversation = async () => {
     stop();
     const newConversationId = uuidv4();
@@ -171,6 +149,7 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
     setConversations([newConversation, ...conversations]);
     setActiveConversationId(newConversationId);
     setInput('');
+    setMessages([]);
     chatInputRef.current?.focus();
   };
 
@@ -185,6 +164,7 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
     setConversations(remainingConversations);
     if (activeConversationId === id) {
       setActiveConversationId(null);
+      setMessages([]);
     }
   };
 
@@ -228,7 +208,9 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
   const handleEditMessage = (message: Message) => {
      setInput(message.content);
      chatInputRef.current?.focus();
-     setMessages(messages.slice(0, messages.findIndex(m => m.id === message.id)));
+     const userMessageIndex = messages.findIndex(m => m.id === message.id);
+     const newMessages = messages.slice(0, userMessageIndex);
+     setMessages(newMessages);
   };
   
   const handleRegenerateResponse = () => {
@@ -259,19 +241,25 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
     if (!input.trim() || isGenerating) return;
 
     let currentConversationId = activeConversationId;
-    
+    const userMessage: Message = { id: uuidv4(), role: 'user', content: input.trim(), createdAt: Date.now() };
+
     if (!currentConversationId) {
         const newConvId = uuidv4();
         const newConversation: Conversation = {
             id: newConvId,
             title: input.trim().substring(0, 30),
-            messages: [],
+            messages: [userMessage],
             createdAt: Date.now(),
         };
         await addConversationWithId(user.uid, newConversation);
         setConversations(prev => [newConversation, ...prev]);
         setActiveConversationId(newConvId);
         currentConversationId = newConvId;
+        setMessages([userMessage]);
+    } else {
+        const updatedMessages = [...messages, userMessage];
+        setMessages(updatedMessages);
+        await updateConversation(user.uid, currentConversationId, { messages: updatedMessages });
     }
     
     handleSubmit(e, {
@@ -285,7 +273,35 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
 
   return (
     <SidebarProvider>
-      <Sidebar side="left" collapsible="icon" className="border-r">
+      <div className="absolute inset-0 overflow-hidden z-0">
+        <div className="absolute top-1/4 left-1/4 w-[300px] h-[300px] bg-[#00f5d4] rounded-full mix-blend-soft-light opacity-20 blur-[100px]"></div>
+        <div className="absolute bottom-1/3 right-1/3 w-[200px] h-[200px] bg-[#f15bb5] rounded-full mix-blend-soft-light opacity-20 blur-[80px]"></div>
+        <div className="absolute top-1/3 right-1/4 w-[150px] h-[150px] bg-[#fee440] rounded-full mix-blend-soft-light opacity-15 blur-[60px]"></div>
+        <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] bg-[length:100px_100px] opacity-[0.02]"></div>
+        <div className="absolute inset-0 overflow-hidden">
+          {[...Array(30)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute text-[#00f5d4] text-xs opacity-30"
+              initial={{ y: -50 }}
+              animate={{ 
+                y: '100vh',
+                transition: { 
+                  duration: 10 + Math.random() * 20, 
+                  repeat: Infinity,
+                  delay: Math.random() * 5
+                } 
+              }}
+              style={{ left: `${Math.random() * 100}%` }}
+            >
+              {Math.random() > 0.5 ? '1' : '0'}
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      <div className="relative z-10 h-full flex flex-col backdrop-blur-[1px]">
+      <Sidebar side="left" collapsible="icon" className="border-r border-[#1a2436]/50 bg-[#0a0e17]/80">
         <SidebarHeader>
            <SidebarTrigger />
         </SidebarHeader>
@@ -303,7 +319,7 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
             <UserProfile user={user} />
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset className="flex flex-col">
+      <SidebarInset className="flex flex-col bg-transparent">
         <ChatHeader />
         <div className="flex-1 flex flex-col overflow-hidden">
           {activeConversationId ? (
@@ -336,6 +352,7 @@ export default function ChatLayout({ user }: ChatLayoutProps) {
           )}
         </div>
       </SidebarInset>
+      </div>
     </SidebarProvider>
   );
 }

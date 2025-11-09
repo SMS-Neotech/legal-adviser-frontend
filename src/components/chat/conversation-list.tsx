@@ -30,7 +30,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "../language-provider";
@@ -86,7 +85,7 @@ export function ConversationList({
       <div className="p-2">
         <Button
           variant="outline"
-          className="w-full justify-start gap-2 group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center"
+          className="w-full justify-start gap-2 group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center bg-transparent border-[#00f5d4]/30 text-[#00f5d4] hover:bg-[#00f5d4]/10 hover:text-[#00f5d4]"
           onClick={onNewConversation}
         >
           <PlusCircle className="size-4" />
@@ -100,11 +99,11 @@ export function ConversationList({
             placeholder={t('searchChats')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9"
+            className="w-full pl-9 bg-[#0f172a] border-[#2a3446] text-white"
           />
         </div>
       </div>
-      <SidebarSeparator />
+      <SidebarSeparator className="bg-[#1a2436]" />
       {filteredConversations.length > 0 && (
         <div className="px-2 my-2 text-xs font-semibold tracking-wider uppercase text-muted-foreground group-data-[collapsible=icon]:hidden">
             {t('chatHistory')}
@@ -119,13 +118,13 @@ export function ConversationList({
                   value={renameValue}
                   onChange={(e) => setRenameValue(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSaveRename(conversation.id)}
-                  className="h-8"
+                  className="h-8 bg-[#0f172a] border-[#2a3446] text-white"
                   autoFocus
                 />
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleSaveRename(conversation.id)}>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-[#00f5d4]" onClick={() => handleSaveRename(conversation.id)}>
                   <Check className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleCancelEdit}>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={handleCancelEdit}>
                   <X className="h-4 w-4" />
                 </Button>
               </div>
@@ -155,23 +154,23 @@ export function ConversationList({
                     <SidebarMenuAction
                       aria-label="Delete conversation"
                       className={cn(
-                        "right-8 peer-hover/menu-button:text-destructive hover:!text-destructive",
+                        "right-8 peer-hover/menu-button:text-red-500 hover:!text-red-500",
                         "group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 peer-data-[active=true]/menu-button:text-sidebar-accent-foreground md:opacity-0"
                       )}
                     >
                       <Trash2 />
                     </SidebarMenuAction>
                   </AlertDialogTrigger>
-                  <AlertDialogContent>
+                  <AlertDialogContent className="bg-[#0f172a] border-[#2a3446] text-white">
                     <AlertDialogHeader>
                       <AlertDialogTitle>{t('areYouSure')}</AlertDialogTitle>
-                      <AlertDialogDescription>
+                      <AlertDialogDescription className="text-muted-foreground">
                         {t('deleteConversationConfirmation', { title: conversation.title })}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => onDeleteConversation(conversation.id)}>
+                      <AlertDialogCancel className="bg-transparent border-white/20 hover:bg-white/10 hover:text-white">{t('cancel')}</AlertDialogCancel>
+                      <AlertDialogAction className="bg-red-600 hover:bg-red-700 text-white" onClick={() => onDeleteConversation(conversation.id)}>
                         {t('delete')}
                       </AlertDialogAction>
                     </AlertDialogFooter>
