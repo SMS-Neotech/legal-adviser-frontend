@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, type User } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface AuthContextType {
   user: User | null;
@@ -68,14 +68,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider value={value}>
-        <motion.div
-            key={loading ? 'loading' : 'loaded'}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-        >
-            {children}
-        </motion.div>
+        <AnimatePresence mode="wait">
+            <motion.div
+                key={loading ? 'loading' : 'loaded'}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+            >
+                {children}
+            </motion.div>
+        </AnimatePresence>
     </AuthContext.Provider>
   );
 }
