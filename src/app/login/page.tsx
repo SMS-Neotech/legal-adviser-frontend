@@ -5,10 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Logo } from '@/components/icons';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Terminal } from 'lucide-react';
+import { Terminal, Copy } from 'lucide-react';
 import { useTranslation } from '@/components/language-provider';
+import { motion } from 'framer-motion';
+import { useToast } from '@/hooks/use-toast';
+
 
 function GoogleIcon() {
     return (
@@ -25,6 +28,13 @@ export default function LoginPage() {
   const { signInWithGoogle, user, loading, isFirebaseConfigured } = useAuth();
   const router = useRouter();
   const { t } = useTranslation();
+  const { toast } = useToast();
+  const [authError, setAuthError] = useState<any>(null);
+  const [origin, setOrigin] = useState('');
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
 
   useEffect(() => {
     if (!loading && user) {
@@ -32,11 +42,27 @@ export default function LoginPage() {
     }
   }, [user, loading, router]);
 
+  const handleSignIn = async () => {
+    setAuthError(null);
+    try {
+      await signInWithGoogle();
+    } catch (error: any) {
+      setAuthError(error);
+    }
+  };
+
+  const copyOrigin = () => {
+    navigator.clipboard.writeText(origin);
+    toast({
+      description: "Copied to clipboard!",
+    });
+  };
+
   if (loading || user) {
     return (
-        <div className="flex h-screen w-full items-center justify-center">
+        <div className="flex h-screen w-full items-center justify-center bg-background">
             <div className="flex flex-col items-center gap-4">
-                <Logo className="size-12 animate-pulse" />
+                <Logo className="size-12 text-primary animate-pulse" />
                 <p className="text-muted-foreground">{t('loading')}</p>
             </div>
         </div>
@@ -44,32 +70,57 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4">
-            <Logo className="size-16 text-primary" />
-          </div>
-          <CardTitle className="text-xl">{t('welcomeToLegalAdvisor')}</CardTitle>
-          <CardDescription>{t('signInToContinue')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {!isFirebaseConfigured ? (
-            <Alert variant="destructive">
-              <Terminal className="h-4 w-4" />
-              <AlertTitle>{t('firebaseNotConfigured')}</AlertTitle>
-              <AlertDescription>
-                {t('firebaseNotConfiguredMessage')}
-              </AlertDescription>
-            </Alert>
-          ) : (
-            <Button onClick={signInWithGoogle} className="w-full" variant="outline">
-              <GoogleIcon />
-              {t('signInWithGoogle')}
-            </Button>
-          )}
-        </CardContent>
-      </Card>
+    <div className="flex min-h-screen items-center justify-center bg-background p-4 bg-grid-pattern">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Card className="w-full max-w-sm bg-background/80 backdrop-blur-sm border-primary/20 shadow-lg shadow-primary/10">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4">
+              <Logo className="size-16 text-primary" />
+            </div>
+            <CardTitle className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
+              {t('welcomeToLegalAdvisor')}
+            </CardTitle>
+            <CardDescription>{t('signInToContinue')}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {!isFirebaseConfigured ? (
+              <Alert variant="destructive">
+                <Terminal className="h-4 w-4" />
+                <AlertTitle>{t('firebaseNotConfigured')}</AlertTitle>
+                <AlertDescription>
+                  {t('firebaseNotConfiguredMessage')}
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <>
+                {authError && authError.code === 'auth/unauthorized-domain' && (
+                  <Alert variant="destructive">
+                    <Terminal className="h-4 w-4" />
+                    <AlertTitle>Domain Not Authorized</AlertTitle>
+                    <AlertDescription>
+                      <p className="mb-2">This domain is not authorized for authentication. Please add the following origin to your Firebase project's authorized domains:</p>
+                      <div className="flex items-center gap-2 p-2 rounded-md bg-legal-dark/20 text-xs">
+                        <span className="flex-1 overflow-x-auto">{origin}</span>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={copyOrigin}>
+                            <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
+                <Button onClick={handleSignIn} className="w-full" variant="outline">
+                  <GoogleIcon />
+                  <span className='ml-2'>{t('signInWithGoogle')}</span>
+                </Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 }

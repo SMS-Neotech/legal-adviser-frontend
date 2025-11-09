@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, type User } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 
 interface AuthContextType {
   user: User | null;
@@ -38,11 +39,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error("Firebase is not configured. Cannot sign in.");
       return;
     }
-    
-    console.log(
-      'Attempting to sign in from origin:',
-      window.location.origin
-    );
 
     const provider = new GoogleAuthProvider();
     try {
@@ -50,11 +46,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       router.push('/');
     } catch (error) {
       console.error("Error signing in with Google: ", error);
-      console.error(
-        'Please ensure the domain "' +
-          window.location.origin +
-          '" is added to your Firebase project\'s authorized domains.'
-      );
+      // Re-throw the error to be caught by the calling component
+      throw error;
     }
   };
 
@@ -73,7 +66,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value = { user, loading, isFirebaseConfigured, signInWithGoogle, logout };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+        <motion.div
+            key={loading ? 'loading' : 'loaded'}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+        >
+            {children}
+        </motion.div>
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
